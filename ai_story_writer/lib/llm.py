@@ -101,3 +101,7 @@ def generate_chapter(
         return GenerationCompletedEvent(interrupted=False, content=content)
     except Exception as e:
         return GenerationErrorEvent(message=str(e))
+
+
+def stop_generation(generation_id: str):
+    generations.remove(UUID(generation_id))
