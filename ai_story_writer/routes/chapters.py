@@ -2,7 +2,7 @@ from typing import Iterator
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from ai_story_writer.lib.chapter import add_chapter, delete_chapter, get_chapters, regenerate_chapter, update_chapter
-from ai_story_writer.types import AddChapterRequest, UpdateChapterRequest, GenerationEvent
+from ai_story_writer.types import Chapter, CreateChapterRequest, GenerationEvent
 
 
 router = APIRouter(prefix='/api/chapters')
@@ -22,7 +22,7 @@ def get(story_id: str):
 
 
 @router.post('/{story_id}')
-def add(story_id: str, request: AddChapterRequest):
+def add(story_id: str, request: CreateChapterRequest):
     try:
         return StreamingResponse(__to_sse_event(add_chapter(story_id, request)), media_type='text/event-stream')
     except KeyError as e:
@@ -30,7 +30,7 @@ def add(story_id: str, request: AddChapterRequest):
 
 
 @router.put('/{story_id}/{chapter_id}')
-def update(story_id: str, chapter_id: str, request: UpdateChapterRequest):
+def update(story_id: str, chapter_id: str, request: Chapter):
     try:
         return update_chapter(story_id, chapter_id, request)
     except KeyError as e:

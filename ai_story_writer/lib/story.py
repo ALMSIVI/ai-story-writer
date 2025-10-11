@@ -1,7 +1,7 @@
 from ai_story_writer.data.story import read_stories, write_stories
 from ai_story_writer.data.chapter import delete_chapters, write_chapters
 from ai_story_writer.lib.web_ui import convert_to_story
-from ai_story_writer.types import Story, WebUiChat
+from ai_story_writer.types import Story, CreateStoryRequest, WebUiChat
 from ai_story_writer.utils.id import generate_id
 
 
@@ -17,9 +17,16 @@ def get_story(story_id: str, stories: list[Story] = None):
     except StopIteration:
         raise KeyError(f'Story {story_id} not found')
 
-def add_story(story: Story):
+
+def create_story(request: CreateStoryRequest):
     stories = get_stories()
-    story.id = generate_id(stories)
+    story = Story(
+        id=generate_id(stories),
+        title=request.title,
+        model=request.model,
+        category=request.category,
+        template=request.template,
+    )
     stories.append(story)
     write_stories(stories)
     return story

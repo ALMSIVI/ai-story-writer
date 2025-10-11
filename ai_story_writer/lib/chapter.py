@@ -4,9 +4,8 @@ from .llm import generate_chapter
 from ai_story_writer.utils.id import generate_id
 from ai_story_writer.data.chapter import read_chapters, write_chapters
 from ai_story_writer.types import (
-    AddChapterRequest,
+    CreateChapterRequest,
     Chapter,
-    UpdateChapterRequest,
     GenerationEvent,
     GenerationCompletedEvent,
 )
@@ -25,7 +24,7 @@ def __find_chapter(story_id: str, chapter_id: str, chapters: list[Chapter] | Non
         raise KeyError(f'Chapter {chapter_id} not found')
 
 
-def add_chapter(story_id: str, request: AddChapterRequest) -> Iterator[GenerationEvent]:
+def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[GenerationEvent]:
     story = get_story(story_id)
     if request.model:
         story.model = request.model
@@ -72,23 +71,15 @@ def add_chapter(story_id: str, request: AddChapterRequest) -> Iterator[Generatio
             yield response
 
 
-def update_chapter(story_id: str, chapter_id: str, request: UpdateChapterRequest):
+def update_chapter(story_id: str, chapter_id: str, chapter: Chapter):
     story = get_story(story_id)
     all_chapters = get_chapters(story_id)
     index = __find_chapter(story_id, chapter_id, all_chapters)
-    chapter = all_chapters[index]
-
-    if request.model:
-        story.model = request.model
-    if request.outline:
-        chapter.outline = request.outline
-    if request.lore:
-        chapter.lore = request.lore
-    if request.content:
-        chapter.content = request.content
+    chapter.id = chapter_id
+    all_chapters[index] = chapter
 
     write_chapters(story_id, all_chapters)
-    if request.model:
+    if chapter.model:
         update_story(story_id, story)
 
     return chapter

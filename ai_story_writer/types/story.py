@@ -3,7 +3,7 @@ from .model import LlmModel
 
 
 class Story(BaseModel):
-    id: str | None = None
+    id: str
     title: str
     model: LlmModel
     category: str | None = None

@@ -2,13 +2,13 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from pydantic import TypeAdapter
 from ai_story_writer.lib.story import (
     get_stories,
-    add_story,
+    create_story,
     update_story,
     clone_story,
     delete_story,
     import_stories_from_webui,
 )
-from ai_story_writer.types import Story, WebUiChat
+from ai_story_writer.types import Story, CreateStoryRequest, WebUiChat
 
 chat_list_validator = TypeAdapter(list[WebUiChat])
 router = APIRouter(prefix='/api/stories')
@@ -20,8 +20,8 @@ def get():
 
 
 @router.post('/')
-def create(story: Story):
-    return add_story(story)
+def create(story: CreateStoryRequest):
+    return create_story(story)
 
 
 @router.put('/{story_id}')
