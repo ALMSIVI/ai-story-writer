@@ -24,8 +24,9 @@ def read_chapters(story_id: str) -> list[Chapter]:
         return chapter_list_adapter.validate_json(f.read())
 
 
-def write_chapters(story_id: str, chapters: list[Chapter] | None = None):
-    __check_story_existence(story_id)
+def write_chapters(story_id: str, chapters: list[Chapter] | None = None, ignore_checks: bool = False):
+    if not ignore_checks:
+        __check_story_existence(story_id)
     chapter_path = chapters_path / f'{story_id}.json'
     with chapter_path.open('wb') as f:
         if chapters is None:

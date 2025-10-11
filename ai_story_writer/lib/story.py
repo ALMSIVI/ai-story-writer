@@ -62,7 +62,7 @@ def import_stories_from_webui(chats: list[WebUiChat]) -> list[Story]:
     for story, chapters in imported:
         story.id = generate_id(stories)
         imported_stories.append(story)
-        write_chapters(story.id, chapters)
+        write_chapters(story.id, chapters, ignore_checks=True)
 
     write_stories(stories + imported_stories)
     return imported_stories
