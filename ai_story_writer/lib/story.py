@@ -1,5 +1,5 @@
 from ai_story_writer.data.story import read_stories, write_stories
-from ai_story_writer.data.chapter import delete_chapters, write_chapters
+from ai_story_writer.data.chapter import read_chapters, delete_chapters, write_chapters
 from ai_story_writer.lib.web_ui import convert_to_story
 from ai_story_writer.types import Story, CreateStoryRequest, WebUiChat
 from ai_story_writer.utils.id import generate_id
@@ -44,9 +44,12 @@ def update_story(story_id: str, story: Story):
 def clone_story(story_id: str):
     stories = get_stories()
     story = get_story(story_id, stories)
+    chapters = read_chapters(story_id)
 
     cloned_story = story.model_copy()
     cloned_story.id = generate_id(stories)
+
+    write_chapters(cloned_story.id, chapters, ignore_checks=True)
     stories.append(cloned_story)
     write_stories(stories)
     return cloned_story
