@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-
 from ai_story_writer.types.chapter import Chapter
 
 
