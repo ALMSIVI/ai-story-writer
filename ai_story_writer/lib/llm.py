@@ -80,7 +80,6 @@ def generate_chapter(
     next_outline: str | None,
 ) -> Iterator[GenerationEvent]:
     prompt = create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
-    print(prompt)
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
