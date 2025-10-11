@@ -1,10 +1,30 @@
 from pathlib import Path
 from typing import Iterator
+from uuid import UUID, uuid4
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient
-from ai_story_writer.types import Chapter, ModelConfig, LlmModel, Story
+from ai_story_writer.types import (
+    Chapter,
+    ModelConfig,
+    LlmModel,
+    Story,
+    GenerationEvent,
+    StartGenerationEvent,
+    GenerationInProgressEvent,
+    GenerationCompletedEvent,
+    GenerationErrorEvent,
+)
 
 templates_path = Path('config', 'templates')
 clients: dict[str, LlmClient] = {}
+generations: set[UUID] = set()
+
+
+def __create_generation_id():
+    while True:
+        id = uuid4()
+        if id not in generations:
+            generations.add(id)
+            return id
 
 
 def add_client(provider: str, model_config: ModelConfig):
@@ -57,9 +77,25 @@ def generate_chapter(
     currrent_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
-) -> Iterator[str]:
+) -> Iterator[GenerationEvent]:
     prompt = create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
-    return clients[model.provider].generate(prompt, model.name)
+
+    try:
+        generation = clients[model.provider].generate(prompt, model.name)
+        generation_id = __create_generation_id()
+        content = ''
+        yield StartGenerationEvent(id=str(generation_id))
+        for chunk in generation:
+            if generation_id not in generations:
+                return GenerationCompletedEvent(interrupted=True, content=content)
+
+            content += chunk
+            yield GenerationInProgressEvent(chunk=chunk)
+
+        yield GenerationCompletedEvent(interrupted=False, content=content)
+        generations.remove(generation_id)
+    except Exception as e:
+        return GenerationErrorEvent(message=str(e))

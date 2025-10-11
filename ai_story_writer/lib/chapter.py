@@ -1,8 +1,15 @@
+from typing import Iterator
 from .story import get_story, update_story
 from .llm import generate_chapter
 from ai_story_writer.utils.id import generate_id
 from ai_story_writer.data.chapter import read_chapters, write_chapters
-from ai_story_writer.types import AddChapterRequest, Chapter, UpdateChapterRequest
+from ai_story_writer.types import (
+    AddChapterRequest,
+    Chapter,
+    UpdateChapterRequest,
+    GenerationEvent,
+    GenerationCompletedEvent,
+)
 
 
 def get_chapters(story_id: str):
@@ -18,7 +25,7 @@ def __find_chapter(story_id: str, chapter_id: str, chapters: list[Chapter] | Non
         raise KeyError(f'Chapter {chapter_id} not found')
 
 
-def add_chapter(story_id: str, request: AddChapterRequest):
+def add_chapter(story_id: str, request: AddChapterRequest) -> Iterator[GenerationEvent]:
     story = get_story(story_id)
     if request.model:
         story.model = request.model
@@ -41,30 +48,30 @@ def add_chapter(story_id: str, request: AddChapterRequest):
                 lore = chapter.lore
                 break
 
-    # TODO: streaming response support
-    content = ''
-    for chunk in generate_chapter(story, lore, request.current_outline, previous_chapters, next_outline):
-        content += chunk
+    for response in generate_chapter(story, lore, request.current_outline, previous_chapters, next_outline):
+        if isinstance(response, GenerationCompletedEvent):
+            response: GenerationCompletedEvent
+            current_chapter = Chapter(
+                id=generate_id(all_chapters),
+                outline=request.current_outline,
+                content=response.content,
+                lore=request.lore,
+                model=story.model,
+            )
+            if request.after:
+                all_chapters = previous_chapters + [current_chapter] + all_chapters[index + 2 :]
+            else:
+                all_chapters.append(current_chapter)
+                next_chapter = Chapter(id=generate_id(all_chapters), outline=request.next_outline)
+                all_chapters.append(next_chapter)
 
-    current_chapter = Chapter(
-        id=generate_id(all_chapters),
-        outline=request.current_outline,
-        content=content,
-        lore=request.lore,
-        model=story.model,
-    )
-    if request.after:
-        all_chapters = previous_chapters + [current_chapter] + all_chapters[index + 2 :]
-    else:
-        all_chapters.append(current_chapter)
-        next_chapter = Chapter(id=generate_id(all_chapters), outline=request.next_outline)
-        all_chapters.append(next_chapter)
+            write_chapters(story_id, all_chapters)
+            if request.model:
+                update_story(story_id, story)
 
-    write_chapters(story_id, all_chapters)
-    if request.model:
-        update_story(story_id, story)
-
-    return current_chapter
+            return GenerationCompletedEvent(interrupted=response.interrupted, chapter=current_chapter)
+        else:
+            yield response
 
 
 def update_chapter(story_id: str, chapter_id: str, request: UpdateChapterRequest):
@@ -79,17 +86,7 @@ def update_chapter(story_id: str, chapter_id: str, request: UpdateChapterRequest
         chapter.outline = request.outline
     if request.lore:
         chapter.lore = request.lore
-
-    previous_chapters = all_chapters[: index + 1]
-    next_outline = all_chapters[index + 2].content
-
-    if request.regenerate:
-        # TODO: streaming response support
-        content = ''
-        for chunk in generate_chapter(story, chapter.lore, chapter.outline, previous_chapters, next_outline):
-            content += chunk
-        chapter.content = content
-    else:
+    if request.content:
         chapter.content = request.content
 
     write_chapters(story_id, all_chapters)
@@ -97,6 +94,30 @@ def update_chapter(story_id: str, chapter_id: str, request: UpdateChapterRequest
         update_story(story_id, story)
 
     return chapter
+
+
+def regenerate_chapter(story_id: str, chapter_id: str):
+    story = get_story(story_id)
+    all_chapters = get_chapters(story_id)
+    index = __find_chapter(story_id, chapter_id, all_chapters)
+    chapter = all_chapters[index]
+    previous_chapters = all_chapters[: index + 1]
+    next_outline = all_chapters[index + 2].content
+
+    lore = chapter.lore
+    if lore is None:
+        for chapter in reversed(previous_chapters):
+            if chapter.lore is not None:
+                lore = chapter.lore
+                break
+
+    for response in generate_chapter(story, lore, chapter.outline, previous_chapters, next_outline):
+        if isinstance(response, GenerationCompletedEvent):
+            response: GenerationCompletedEvent
+            write_chapters(story_id, all_chapters)
+            return GenerationCompletedEvent(interrupted=response.interrupted, chapter=chapter)
+        else:
+            yield response
 
 
 def delete_chapter(story_id: str, chapter_id: str):

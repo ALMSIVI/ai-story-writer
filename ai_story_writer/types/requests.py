@@ -10,7 +10,6 @@ class AddChapterRequest(BaseModel):
 
 
 class UpdateChapterRequest(BaseModel):
-    regenerate: bool
     outline: str | None = None
     lore: str | None = None
     content: str | None = None
