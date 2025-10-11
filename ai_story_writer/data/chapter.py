@@ -30,7 +30,7 @@ def write_chapters(story_id: str, chapters: list[Chapter] | None = None):
     with chapter_path.open('wb') as f:
         if chapters is None:
             chapters = []
-        f.write(chapter_list_adapter.dump_json(chapters))
+        f.write(chapter_list_adapter.dump_json(chapters, exclude_none=True))
 
 
 def delete_chapters(story_id: str):

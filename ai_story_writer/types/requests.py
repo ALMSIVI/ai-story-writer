@@ -4,6 +4,7 @@ from .model import LlmModel
 
 class AddChapterRequest(BaseModel):
     current_outline: str
+    lore: str | None = None
     next_outline: str | None = None
     after: str | None = None
     model: LlmModel | None = None

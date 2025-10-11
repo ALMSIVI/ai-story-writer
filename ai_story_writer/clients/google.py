@@ -14,7 +14,7 @@ class GoogleClient(LlmClient):
 
     def list_models(self) -> list[LlmModel]:
         models = self.__client.models.list()
-        model_names = [model.id for model in models]
+        model_names = [model.name for model in models]
         if len(self.included_models) > 0:
             return [
                 {'provider': self.provider, 'name': model_name}

@@ -10,7 +10,7 @@ router = APIRouter(prefix='/api/chapters')
 
 def __to_sse_event(response: Iterator[GenerationEvent]):
     for event in response:
-        yield f'event: {event.event_type}\ndata: {event.model_dump_json()}'
+        yield f'event: {event.event_type}\ndata: {event.model_dump_json(exclude_none=True)}\n\n'
 
 
 @router.get('/{story_id}')
@@ -24,7 +24,7 @@ def get(story_id: str):
 @router.post('/{story_id}')
 def add(story_id: str, request: AddChapterRequest):
     try:
-        return StreamingResponse(__to_sse_event(add_chapter(story_id, request), media_type='text/event-stream'))
+        return StreamingResponse(__to_sse_event(add_chapter(story_id, request)), media_type='text/event-stream')
     except KeyError as e:
         raise HTTPException(404, str(e))
 

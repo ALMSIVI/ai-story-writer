@@ -18,7 +18,7 @@ Here is the brief outline for the current chapter that you need to write:
 {{current}}
 </current_chapter>
 
-Here is the brief outline for the next chapter (you do not need to write; this section might be empty if you're writing the final chapter):
+Here is the brief outline for the next chapter (you do not need to write it; this section might be empty if you're writing the final chapter):
 
 <next_chapter>
 {{next}}

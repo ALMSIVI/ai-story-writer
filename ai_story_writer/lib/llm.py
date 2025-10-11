@@ -64,7 +64,8 @@ def create_prompt(
         next_outline = ''
 
     return (
-        template.replace('{{lore}}', lore)
+        template.replace('{{title}}', story.title)
+        .replace('{{lore}}', lore)
         .replace('{{previous}}', previous_contents)
         .replace('{{current}}', current_outline)
         .replace('{{next}}', next_outline)
@@ -79,6 +80,7 @@ def generate_chapter(
     next_outline: str | None,
 ) -> Iterator[GenerationEvent]:
     prompt = create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
+    print(prompt)
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
@@ -95,7 +97,7 @@ def generate_chapter(
             content += chunk
             yield GenerationInProgressEvent(chunk=chunk)
 
-        yield GenerationCompletedEvent(interrupted=False, content=content)
         generations.remove(generation_id)
+        return GenerationCompletedEvent(interrupted=False, content=content)
     except Exception as e:
         return GenerationErrorEvent(message=str(e))

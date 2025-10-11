@@ -13,4 +13,4 @@ def read_stories() -> list[Story]:
 
 def write_stories(stories: list[Story] | None = None):
     with story_path.open('wb') as f:
-        f.write(story_list_adapter.dump_json(stories))
+        f.write(story_list_adapter.dump_json(stories, exclude_none=True))

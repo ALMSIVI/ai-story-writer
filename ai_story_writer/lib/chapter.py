@@ -38,7 +38,7 @@ def add_chapter(story_id: str, request: AddChapterRequest) -> Iterator[Generatio
         previous_chapters = all_chapters[: index + 1]
 
     next_outline = request.next_outline
-    if len(previous_chapters) != all_chapters:
+    if len(previous_chapters) != len(all_chapters):
         next_outline = all_chapters[index + 2].outline
 
     lore = request.lore
@@ -62,12 +62,10 @@ def add_chapter(story_id: str, request: AddChapterRequest) -> Iterator[Generatio
                 all_chapters = previous_chapters + [current_chapter] + all_chapters[index + 2 :]
             else:
                 all_chapters.append(current_chapter)
-                next_chapter = Chapter(id=generate_id(all_chapters), outline=request.next_outline)
-                all_chapters.append(next_chapter)
+                story.next_outline = next_outline
 
             write_chapters(story_id, all_chapters)
-            if request.model:
-                update_story(story_id, story)
+            update_story(story_id, story)
 
             return GenerationCompletedEvent(interrupted=response.interrupted, chapter=current_chapter)
         else:

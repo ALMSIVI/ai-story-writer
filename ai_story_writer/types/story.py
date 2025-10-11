@@ -8,3 +8,4 @@ class Story(BaseModel):
     model: LlmModel
     category: str | None = None
     template: str | None = None
+    next_outline: str | None = None
