@@ -4,10 +4,10 @@ from pydantic import BaseModel
 class WebUiMessage(BaseModel):
     id: str
     content: str
-    model: str
+    model: str | None = None
 
 
-class WebUiHistory:
+class WebUiHistory(BaseModel):
     messages: dict[str, WebUiMessage]
 
 

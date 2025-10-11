@@ -2,15 +2,16 @@ from pydantic import BaseModel
 from .model import LlmModel
 
 
-class InsertChapterRequest(BaseModel):
+class AddChapterRequest(BaseModel):
     current_outline: str
-    next_outline: str | None
-    after: str | None
-    model: LlmModel | None
+    next_outline: str | None = None
+    after: str | None = None
+    model: LlmModel | None = None
 
 
 class UpdateChapterRequest(BaseModel):
     regenerate: bool
-    current_outline: str | None
-    content: str | None
-    model: LlmModel | None
+    outline: str | None = None
+    lore: str | None = None
+    content: str | None = None
+    model: LlmModel | None = None

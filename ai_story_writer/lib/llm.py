@@ -18,7 +18,7 @@ def add_client(provider: str, model_config: ModelConfig):
             clients[provider] = OpenAIClient(model_config.api_key, included_models, provider, model_config.base_url)
 
 
-def get_models() -> list[LlmModel]:
+def get_llm_models() -> list[LlmModel]:
     models: list[LlmModel] = []
     for client in clients.values():
         models += client.list_models()
@@ -30,18 +30,13 @@ def create_prompt(
     current_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
-    lore: str | None,
+    lore: str,
 ) -> str:
     template_name = story.template if story.template is not None else 'default'
     template_path = templates_path / f'{template_name}.md'
     with template_path.open() as f:
         template = f.read()
 
-    if lore is None:
-        for chapter in reversed(previous_chapters):
-            if chapter.lore is not None:
-                lore = chapter.lore
-                break
     if previous_chapters is None:
         previous_chapters = []
     previous_contents = '\n'.join([chapter.content for chapter in previous_chapters])
@@ -56,12 +51,12 @@ def create_prompt(
     )
 
 
-def generate(
+def generate_chapter(
     story: Story,
+    lore: str,
     currrent_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
-    lore: str | None,
 ) -> Iterator[str]:
     prompt = create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
     model = story.model

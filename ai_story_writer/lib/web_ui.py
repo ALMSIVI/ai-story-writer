@@ -11,17 +11,19 @@ def parse_model(model_str: str) -> LlmModel:
     return LlmModel(provider=model_str[:index], name=model_str[index + 1 :])
 
 
-def convert_to_story(chat: WebUiChat) -> tuple[Story, Chapter]:
+def convert_to_story(chat: WebUiChat) -> tuple[Story, list[Chapter]]:
     history = list(chat.chat.history.messages.values())
     messages = history if len(history) > len(chat.chat.messages) else chat.chat.messages
     story = Story(id=chat.id, title=chat.title, model=parse_model(chat.chat.models[0]))
     chapters: list[Chapter] = []
     for i in range(2, len(messages), 2):
         chapters.append(
-            Chapter(id=messages[i].id),
-            outline=messages[i].content,
-            content=messages[i + 1].content,
-            model=parse_model(messages[i + 1].model),
+            Chapter(
+                id=messages[i].id,
+                outline=messages[i].content,
+                content=messages[i + 1].content,
+                model=parse_model(messages[i + 1].model),
+            ),
         )
     chapters[0].lore = messages[0].content
-    return [story, chapters]
+    return story, chapters
