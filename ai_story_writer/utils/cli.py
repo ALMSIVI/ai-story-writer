@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from uuid import UUID
 from ai_story_writer.types import Story, Chapter, LlmModel
 
 
@@ -68,9 +69,15 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
             lore = chapter_info[1]
             outline = chapter_info[2]
         elif len(chapter_info) == 2:
-            chapter_id = None
-            lore = chapter_info[0]
-            outline = chapter_info[1]
+            try:
+                UUID(chapter_info[0])
+                chapter_id = chapter_info[0]
+                lore = None
+                outline = chapter_info[1]
+            except ValueError:
+                chapter_id = None
+                lore = chapter_info[0]
+                outline = chapter_info[1]
         else:
             chapter_id = None
             lore = None
