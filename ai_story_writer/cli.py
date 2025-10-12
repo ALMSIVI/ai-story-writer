@@ -31,6 +31,8 @@ def start():
     if md_file.exists():
         with md_file.open() as f:
             md_str = f.read()
+    else:
+        md_str = ''
     
     cli_story = parse_files(txt_str, md_str)
 
