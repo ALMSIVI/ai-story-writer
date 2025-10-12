@@ -77,7 +77,11 @@ def start():
             if current_chapter.id is None:
                 current_chapter.id = generate_id(chapters)
             cli_story.chapters = all_chapters
-            dump_story(cli_story)
+            txt_str, md_str = dump_story(cli_story)
+            with txt_file.open('wt') as f:
+                f.write(txt_str)
+            with md_file.open('wt') as f:
+                f.write(md_str)
 
 if __name__ == 'main':
     start()

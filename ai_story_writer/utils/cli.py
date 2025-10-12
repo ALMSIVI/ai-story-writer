@@ -97,6 +97,9 @@ def dump_story(cli_story: CliStory) -> tuple[str, str]:
         if chapter.content is not None:
             md_parts.append(chapter.content)
 
+    # Remove final ---
+    txt_parts = txt_parts[:-1]
+
     txt_str = '\n\n'.join(txt_parts)
     md_str = '\n\n'.join(md_parts)
     return txt_str, md_str

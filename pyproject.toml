@@ -23,5 +23,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 120
 
+[tool.poetry.scripts]
+cli = 'ai_story_writer.cli:start'
+
 [tool.ruff.format]
 quote-style = 'single'
