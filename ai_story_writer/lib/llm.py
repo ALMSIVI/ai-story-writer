@@ -8,7 +8,7 @@ from ai_story_writer.types import (
     LlmModel,
     Story,
     GenerationEvent,
-    StartGenerationEvent,
+    GenerationStartedEvent,
     GenerationInProgressEvent,
     GenerationCompletedEvent,
     GenerationErrorEvent,
@@ -45,7 +45,7 @@ def get_llm_models() -> list[LlmModel]:
     return models
 
 
-def create_prompt(
+def __create_prompt(
     story: Story,
     current_outline: str,
     previous_chapters: list[Chapter] | None,
@@ -59,7 +59,7 @@ def create_prompt(
 
     if previous_chapters is None:
         previous_chapters = []
-    previous_contents = '\n'.join([chapter.content for chapter in previous_chapters])
+    previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters])
     if next_outline is None:
         next_outline = ''
 
@@ -79,7 +79,7 @@ def generate_chapter(
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
 ) -> Iterator[GenerationEvent]:
-    prompt = create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
+    prompt = __create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
@@ -88,18 +88,19 @@ def generate_chapter(
         generation = clients[model.provider].generate(prompt, model.name)
         generation_id = __create_generation_id()
         content = ''
-        yield StartGenerationEvent(id=str(generation_id))
+        yield GenerationStartedEvent(id=str(generation_id))
         for chunk in generation:
             if generation_id not in generations:
-                return GenerationCompletedEvent(interrupted=True, content=content)
+                yield GenerationCompletedEvent(interrupted=True, content=content)
+                return
 
             content += chunk
             yield GenerationInProgressEvent(chunk=chunk)
 
         generations.remove(generation_id)
-        return GenerationCompletedEvent(interrupted=False, content=content)
+        yield GenerationCompletedEvent(interrupted=False, content=content)
     except Exception as e:
-        return GenerationErrorEvent(message=str(e))
+        yield GenerationErrorEvent(message=str(e))
 
 
 def stop_generation(generation_id: str):

@@ -47,13 +47,13 @@ def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[Genera
                 lore = chapter.lore
                 break
 
-    for response in generate_chapter(story, lore, request.current_outline, previous_chapters, next_outline):
-        if isinstance(response, GenerationCompletedEvent):
-            response: GenerationCompletedEvent
+    for event in generate_chapter(story, lore, request.current_outline, previous_chapters, next_outline):
+        if isinstance(event, GenerationCompletedEvent):
+            completed_event: GenerationCompletedEvent = event
             current_chapter = Chapter(
                 id=generate_id(all_chapters),
                 outline=request.current_outline,
-                content=response.content,
+                content=completed_event.content,
                 lore=request.lore,
                 model=story.model,
             )
@@ -66,9 +66,9 @@ def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[Genera
             write_chapters(story_id, all_chapters)
             update_story(story_id, story)
 
-            return GenerationCompletedEvent(interrupted=response.interrupted, chapter=current_chapter)
+            yield GenerationCompletedEvent(interrupted=completed_event.interrupted, chapter=current_chapter)
         else:
-            yield response
+            yield event
 
 
 def update_chapter(story_id: str, chapter_id: str, chapter: Chapter):
@@ -90,8 +90,11 @@ def regenerate_chapter(story_id: str, chapter_id: str):
     all_chapters = get_chapters(story_id)
     index = __find_chapter(story_id, chapter_id, all_chapters)
     chapter = all_chapters[index]
-    previous_chapters = all_chapters[: index + 1]
-    next_outline = all_chapters[index + 2].content
+    previous_chapters = all_chapters[: index]
+
+    next_outline = None
+    if index < len(all_chapters) - 1:
+        next_outline = all_chapters[index + 1].outline
 
     lore = chapter.lore
     if lore is None:
@@ -100,13 +103,13 @@ def regenerate_chapter(story_id: str, chapter_id: str):
                 lore = chapter.lore
                 break
 
-    for response in generate_chapter(story, lore, chapter.outline, previous_chapters, next_outline):
-        if isinstance(response, GenerationCompletedEvent):
-            response: GenerationCompletedEvent
+    for event in generate_chapter(story, lore, chapter.outline, previous_chapters, next_outline):
+        if isinstance(event, GenerationCompletedEvent):
+            completed_event: GenerationCompletedEvent = event
             write_chapters(story_id, all_chapters)
-            return GenerationCompletedEvent(interrupted=response.interrupted, chapter=chapter)
+            yield GenerationCompletedEvent(interrupted=completed_event.interrupted, content=chapter)
         else:
-            yield response
+            yield event
 
 
 def delete_chapter(story_id: str, chapter_id: str):

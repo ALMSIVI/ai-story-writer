@@ -33,6 +33,6 @@ Expand the current chapter outline into a full, detailed chapter that continues 
 - Do not write anything that contradicts, resolves, or preempts plot points intended for the next chapter
 - Feel free to be creative and add minor details, subplots, or character moments that enhance the chapter, even if not explicitly mentioned in the outline
 - You may extend scenes or add transitional moments if they make the chapter flow better and feel more complete
-- Each chapter should be around 1,500 - 2,000 words
+- Each chapter should be around 1,000 - 1,500 words
 
 Now, write the chapter.

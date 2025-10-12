@@ -6,7 +6,7 @@ class GenerationEvent(BaseModel):
     event_type: str = Field(frozen=True, exclude=True)
 
 
-class StartGenerationEvent(GenerationEvent):
+class GenerationStartedEvent(GenerationEvent):
     event_type: str = 'start'
     id: str
 
@@ -19,8 +19,7 @@ class GenerationInProgressEvent(GenerationEvent):
 class GenerationCompletedEvent(GenerationEvent):
     event_type: str = 'complete'
     interrupted: bool
-    content: str | None = None
-    chapter: Chapter | None = None
+    content: str | Chapter = None
 
 
 class GenerationErrorEvent(GenerationEvent):

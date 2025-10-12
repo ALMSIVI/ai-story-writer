@@ -3,7 +3,7 @@ from .model import LlmModel
 
 
 class Chapter(BaseModel):
-    id: str | None = None
+    id: str
     outline: str
     content: str
     lore: str | None = None
