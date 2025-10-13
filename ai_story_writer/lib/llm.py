@@ -48,10 +48,10 @@ def get_llm_models() -> list[LlmModel]:
 
 def __create_prompt(
     story: Story,
+    lore: str,
     current_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
-    lore: str,
 ) -> str:
     template_name = story.template if story.template is not None else 'default'
     template_name = f'{template_name}.jinja'
@@ -87,7 +87,7 @@ def generate_chapter(
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
 ) -> Iterator[GenerationEvent]:
-    prompt = __create_prompt(story, currrent_outline, previous_chapters, next_outline, lore)
+    prompt = __create_prompt(story, lore, currrent_outline, previous_chapters, next_outline)
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
