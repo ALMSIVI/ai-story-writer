@@ -6,7 +6,17 @@ Here is the background information for this story:
 {{lore}}
 </background_information>
 
+{% if summary is None %}
 Here are the previous chapters of the story (this section may be empty if you're writing the first chapter):
+{% else %}
+Here is a summary of the previous parts of the story (up to the chapters below):
+
+<summary>
+{{summary}}
+</summary>
+
+Here are the chapters immediately preceding the current chapter:
+{% endif %}
 
 <previous_chapters>
 {{previous}}

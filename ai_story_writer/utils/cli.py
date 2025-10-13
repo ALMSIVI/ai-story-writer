@@ -20,12 +20,13 @@ class CliChapter(BaseModel):
 class CliStory(BaseModel):
     id: str | None = None
     title: str
+    chapter_count: int | None = None
     chapters: list[CliChapter]
 
     def to_story_chapters(self, model: LlmModel, template: str) -> tuple[Story, list[Chapter]]:
         if self.id is None:
             raise ValueError('id is None for story')
-        story = Story(id=self.id, title=self.title, model=model, template=template)
+        story = Story(id=self.id, title=self.title, model=model, template=template, chapterCount=self.chapter_count)
         chapters = [chapter.to_chapter() for chapter in self.chapters]
         return story, chapters
 
@@ -53,12 +54,24 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
     txt_parts = txt_str.split('\n\n---\n\n')
 
     story_info = txt_parts[0].split('\n\n')
-    if len(story_info) == 1:
-        story_id = None
-        title = story_info[0]
-    else:
+    if len(story_info) == 3:
         story_id = story_info[0]
         title = story_info[1]
+        chapter_count = story_info[2]
+    elif len(story_info) == 2:
+        try:
+            UUID(story_info[0])
+            story_id = story_info[0]
+            title = story_info[1]
+            chapter_count = None
+        except ValueError:
+            story_id = None
+            title = story_info[0]
+            chapter_count = story_info[1]
+    else:
+        story_id = None
+        title = story_info[0]
+        chapter_count = None
 
     chapters: list[CliChapter] = []
     txt_parts = txt_parts[1:]
@@ -86,7 +99,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
         content = contents[i] if i < len(contents) else None
         chapters.append(CliChapter(id=chapter_id, lore=lore, outline=outline, content=content))
 
-    return CliStory(id=story_id, title=title, chapters=chapters)
+    return CliStory(id=story_id, title=title, chapter_count=chapter_count, chapters=chapters)
 
 
 def dump_story(cli_story: CliStory) -> tuple[str, str]:

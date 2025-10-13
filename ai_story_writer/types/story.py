@@ -8,4 +8,5 @@ class Story(BaseModel):
     model: LlmModel
     category: str | None = None
     template: str | None = None
-    next_outline: str | None = Field(default=None, alias="nextOutline", serialization_alias="nextOutline")
+    next_outline: str | None = Field(default=None, alias='nextOutline', serialization_alias='nextOutline')
+    chapter_count: int | None = Field(default=None, alias='chapterCount', serialization_alias='chapterCount')

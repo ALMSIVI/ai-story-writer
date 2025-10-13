@@ -7,6 +7,7 @@ class CreateStoryRequest(BaseModel):
     model: LlmModel
     category: str | None = None
     template: str | None = None
+    chapter_count: int | None = Field(default=None, alias='chapterCount')
 
 
 class CreateChapterRequest(BaseModel):

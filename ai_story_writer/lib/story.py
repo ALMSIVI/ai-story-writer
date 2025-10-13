@@ -26,6 +26,7 @@ def create_story(request: CreateStoryRequest):
         model=request.model,
         category=request.category,
         template=request.template,
+        chapter_count=request.chapter_count
     )
     stories.append(story)
     write_stories(stories)

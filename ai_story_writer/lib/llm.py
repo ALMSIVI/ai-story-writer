@@ -1,3 +1,4 @@
+from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from typing import Iterator
 from uuid import UUID, uuid4
@@ -15,6 +16,7 @@ from ai_story_writer.types import (
 )
 
 templates_path = Path('config', 'templates')
+jinja_env = Environment(loader=FileSystemLoader(templates_path))
 clients: dict[str, LlmClient] = {}
 generations: set[UUID] = set()
 
@@ -44,7 +46,6 @@ def get_llm_models() -> list[LlmModel]:
         models += client.list_models()
     return models
 
-
 def __create_prompt(
     story: Story,
     current_outline: str,
@@ -53,22 +54,29 @@ def __create_prompt(
     lore: str,
 ) -> str:
     template_name = story.template if story.template is not None else 'default'
-    template_path = templates_path / f'{template_name}.md'
-    with template_path.open() as f:
-        template = f.read()
+    template_name = f'{template_name}.jinja'
+    template = jinja_env.get_template(template_name)
 
     if previous_chapters is None:
         previous_chapters = []
-    previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters])
+
+    if story.chapter_count is not None and len(previous_chapters) > story.chapter_count:
+        summary_length = len(previous_chapters) - story.chapter_count
+        summary = '\n\n'.join([chapter.outline for chapter in previous_chapters[:summary_length]])
+        previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters[summary_length:]])
+    else:
+        summary = None
+        previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters])
     if next_outline is None:
         next_outline = ''
 
-    return (
-        template.replace('{{title}}', story.title)
-        .replace('{{lore}}', lore)
-        .replace('{{previous}}', previous_contents)
-        .replace('{{current}}', current_outline)
-        .replace('{{next}}', next_outline)
+    return template.render(
+        title=story.title,
+        lore=lore,
+        summary=summary,
+        previous=previous_contents,
+        current=current_outline,
+        next=next_outline,
     )
 
 
