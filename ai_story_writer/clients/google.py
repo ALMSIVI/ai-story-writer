@@ -42,6 +42,8 @@ class GoogleClient(LlmClient):
         ]
 
         for chunk in self.__client.models.generate_content_stream(contents=contents, model=model, config=config):
+            if chunk.prompt_feedback and chunk.prompt_feedback.block_reason:
+                raise RuntimeError(f'Message blocked: {chunk.prompt_feedback.block_reason}')
             yield chunk.text
 
     def close(self):

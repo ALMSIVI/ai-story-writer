@@ -1,9 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
+import sys
 from uuid import uuid4
 from ai_story_writer.setup import teardown, setup
 from ai_story_writer.lib.llm import generate_chapter
-from ai_story_writer.types import LlmModel, GenerationInProgressEvent, GenerationCompletedEvent
+from ai_story_writer.types import LlmModel, GenerationInProgressEvent, GenerationCompletedEvent, GenerationErrorEvent
 from ai_story_writer.utils.cli import dump_story, parse_files
 from ai_story_writer.utils.id import generate_id
 
@@ -85,7 +86,8 @@ def start():
                 f.write(txt_str)
             with md_file.open('wt') as f:
                 f.write(md_str)
-
+        elif isinstance(event, GenerationErrorEvent):
+            print(f'Encountered error {event.message}', file=sys.stderr)
 
 if __name__ == 'main':
     try:
