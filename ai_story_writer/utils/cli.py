@@ -20,13 +20,21 @@ class CliChapter(BaseModel):
 class CliStory(BaseModel):
     id: str | None = None
     title: str
+    style: str | None = None
     chapter_count: int | None = None
     chapters: list[CliChapter]
 
     def to_story_chapters(self, model: LlmModel, template: str) -> tuple[Story, list[Chapter]]:
         if self.id is None:
             raise ValueError('id is None for story')
-        story = Story(id=self.id, title=self.title, model=model, template=template, chapterCount=self.chapter_count)
+        story = Story(
+            id=self.id,
+            title=self.title,
+            model=model,
+            style=self.style,
+            template=template,
+            chapterCount=self.chapter_count,
+        )
         chapters = [chapter.to_chapter() for chapter in self.chapters]
         return story, chapters
 
@@ -50,27 +58,57 @@ def __parse_md(md_str: str) -> list[str]:
 
 def parse_files(txt_str: str, md_str: str) -> CliStory:
     contents = __parse_md(md_str)
-
     txt_parts = txt_str.split('\n\n---\n\n')
-
     story_info = txt_parts[0].split('\n\n')
-    if len(story_info) == 3:
+
+    # Title is required, all others are optional
+    if len(story_info) == 4:
         story_id = story_info[0]
         title = story_info[1]
-        chapter_count = story_info[2]
+        style = story_info[2]
+        chapter_count = int(story_info[3])
+    elif len(story_info) == 3:
+        try:
+            UUID(story_info[0])
+            story_id = story_info[0]
+        except ValueError:
+            story_id = None
+        
+        if story_id is not None:
+            title = story_info[1]
+            try:
+                style = None
+                chapter_count = int(story_info[2])
+            except ValueError:
+                style = story_info[2]
+                chapter_count = None
+        else:
+            title = story_info[0]
+            style = story_info[1]
+            chapter_count = int(story_info[2])
     elif len(story_info) == 2:
         try:
             UUID(story_info[0])
             story_id = story_info[0]
-            title = story_info[1]
-            chapter_count = None
         except ValueError:
             story_id = None
+        
+        if story_id is not None:
+            title = story_info[1]
+            style = None
+            chapter_count = None
+        else:
             title = story_info[0]
-            chapter_count = story_info[1]
+            try:
+                style = None
+                chapter_count = int(story_info[1])
+            except ValueError:
+                style = story_info[1]
+                chapter_count = None
     else:
         story_id = None
         title = story_info[0]
+        style = None
         chapter_count = None
 
     chapters: list[CliChapter] = []
@@ -99,7 +137,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
         content = contents[i] if i < len(contents) else None
         chapters.append(CliChapter(id=chapter_id, lore=lore, outline=outline, content=content))
 
-    return CliStory(id=story_id, title=title, chapter_count=chapter_count, chapters=chapters)
+    return CliStory(id=story_id, title=title, style=style, chapter_count=chapter_count, chapters=chapters)
 
 
 def dump_story(cli_story: CliStory) -> tuple[str, str]:

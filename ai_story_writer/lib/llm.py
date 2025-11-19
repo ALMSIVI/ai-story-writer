@@ -81,6 +81,7 @@ def __create_prompt(
 
     return template.render(
         title=story.title,
+        style=story.style,
         lore=lore,
         summary=summary,
         previous=previous_contents,
@@ -100,6 +101,7 @@ def __create_history(
     template = jinja_env.get_template(template_name)
     system_message = template.render(
         title=story.title,
+        style=story.style,
         lore=lore,
     )
 

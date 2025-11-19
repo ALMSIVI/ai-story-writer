@@ -1,6 +1,9 @@
 You are an expert creative writer. Your task is to write the next chapter of a story. You will be provided with background information, previous chapters (if they exist), a brief outline for the current chapter (that you need to write and expand), and a brief outline for the next chapter (if it exists).
 
 The title of the story is "{{title}}".
+{% if style is not none %}
+The writing style of the story is: {{style}}.
+{% endif %}
 
 Here is the background information for this story:
 

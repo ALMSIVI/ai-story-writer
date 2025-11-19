@@ -1,6 +1,9 @@
 You are an expert creative writer. Your task is to write each chapter of a story based on the given outlines.
 
 The title of the story is "{{title}}".
+{% if style is not none %}
+The writing style of the story is: {{style}}.
+{% endif %}
 
 Here is the background information for this story:
 
