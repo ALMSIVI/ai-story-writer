@@ -9,11 +9,11 @@ from ai_story_writer.utils.id import generate_id
 
 
 parser = ArgumentParser()
-parser.add_argument('-f', '--file', help='text file to store the story')
+parser.add_argument('-f', '--file', help='text file to store the story', required=True)
 parser.add_argument(
     '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
 )
-parser.add_argument('-m', '--model', help='Model used to generate')
+parser.add_argument('-m', '--model', help='Model used to generate', required=True)
 parser.add_argument('-t', '--template', default='default', help='Template for prompt')
 
 
