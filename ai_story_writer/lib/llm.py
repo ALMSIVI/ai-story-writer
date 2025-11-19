@@ -5,8 +5,10 @@ from uuid import UUID, uuid4
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient
 from ai_story_writer.types import (
     Chapter,
+    Message,
     ModelConfig,
     LlmModel,
+    Role,
     Story,
     GenerationEvent,
     GenerationStartedEvent,
@@ -80,20 +82,54 @@ def __create_prompt(
     )
 
 
+def __create_history(
+    story: Story,
+    lore: str,
+    current_outline: str,
+    previous_chapters: list[Chapter] | None,
+) -> list[Message]:
+    template_name = story.template if story.template is not None else 'default-full'
+    template_name = f'{template_name}.jinja'
+    template = jinja_env.get_template(template_name)
+    system_message = template.render(
+        title=story.title,
+        lore=lore,
+    )
+
+    messages = [
+        Message(role=Role.SYSTEM, content=system_message)
+    ]
+
+    if previous_chapters is None:
+        previous_chapters = []
+
+    for chapter in previous_chapters:
+        messages.append(Message(role=Role.USER, content=chapter.outline))
+        messages.append(Message(role=Role.ASSISTANT, content=chapter.content))
+
+    messages.append(Message(role=Role.ASSISTANT, content=current_outline))
+    return messages
+
+
 def generate_chapter(
     story: Story,
     lore: str,
-    currrent_outline: str,
+    current_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
+    include_full_convo: bool = False
 ) -> Iterator[GenerationEvent]:
-    prompt = __create_prompt(story, lore, currrent_outline, previous_chapters, next_outline)
+    if include_full_convo:
+        messages = __create_history(story, lore, current_outline, previous_chapters)
+    else:
+        prompt = __create_prompt(story, lore, current_outline, previous_chapters, next_outline)
+        messages = [Message(role=Role.USER, content=prompt)]
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
 
     try:
-        generation = clients[model.provider].generate(prompt, model.name)
+        generation = clients[model.provider].generate(messages, model.name)
         generation_id = __create_generation_id()
         content = ''
         yield GenerationStartedEvent(id=str(generation_id))

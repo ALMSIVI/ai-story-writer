@@ -1,7 +1,7 @@
 from openai import OpenAI
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types.model import LlmModel
+from ai_story_writer.types import Message, LlmModel, Role
 
 
 class OpenAIClient(LlmClient):
@@ -17,13 +17,21 @@ class OpenAIClient(LlmClient):
         model_names = [model.id for model in models]
         if len(self.included_models) > 0:
             return [
-                {'provider': self.provider, 'name': model_name}
+                LlmModel(provider=self.provider, name=model_name)
                 for model_name in model_names
                 if model_name in self.included_models
             ]
+        return []
 
-    def generate(self, prompt: str, model: str) -> Iterator[str]:
-        with self.__client.responses.stream(input=prompt, model=model) as stream:
+    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
+        client_messages: list[dict[str, str]] = [
+            {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
+        ]
+        with self.__client.responses.stream(instructions=system_message, input=client_messages, model=model) as stream:
             for event in stream:
                 if event.type == 'response.output_text.delta':
                     yield event.delta
+
+    def close(self):
+        self.__client.close()

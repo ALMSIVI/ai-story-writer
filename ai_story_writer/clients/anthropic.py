@@ -1,7 +1,7 @@
 from anthropic import Anthropic
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types.model import LlmModel
+from ai_story_writer.types import Message, LlmModel, Role
 
 
 class AnthropicClient(LlmClient):
@@ -17,14 +17,22 @@ class AnthropicClient(LlmClient):
         model_names = [model.id for model in models]
         if len(self.included_models) > 0:
             return [
-                {'provider': self.provider, 'name': model_name}
+                LlmModel(provider=self.provider, name=model_name)
                 for model_name in model_names
                 if model_name in self.included_models
             ]
+        return []
 
-    def generate(self, prompt: str, model: str) -> Iterator[str]:
+    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
+        client_messages: list[dict[str, str]] = [
+            {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
+        ]
         with self.__client.messages.stream(
-            max_tokens=5000, messages=[{'role': 'user', 'content': prompt}], model=model
+            max_tokens=5000, system=system_message, messages=client_messages, model=model
         ) as stream:
             for text in stream.text_stream:
                 yield text
+
+    def close(self):
+        self.__client.close()

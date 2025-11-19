@@ -1,7 +1,8 @@
 from google import genai
+from google.genai import types
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types.model import LlmModel
+from ai_story_writer.types import Message, LlmModel, Role
 
 
 class GoogleClient(LlmClient):
@@ -17,11 +18,27 @@ class GoogleClient(LlmClient):
         model_names = [model.name for model in models]
         if len(self.included_models) > 0:
             return [
-                {'provider': self.provider, 'name': model_name}
+                LlmModel(provider=self.provider, name=model_name)
                 for model_name in model_names
                 if model_name in self.included_models
             ]
+        return []
 
-    def generate(self, prompt: str, model: str) -> Iterator[str]:
-        for chunk in self.__client.models.generate_content_stream(contents=prompt, model=model):
+    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        config = types.GenerateContentConfig(
+            system_instruction=next(message.content for message in messages if message.role == Role.SYSTEM)
+        )
+        contents = [
+            types.Content(
+                role='user' if message.role == Role.USER else 'model',
+                parts=[types.Part.from_text(text=message.content)],
+            )
+            for message in messages
+            if message.role != Role.SYSTEM
+        ]
+
+        for chunk in self.__client.models.generate_content_stream(contents=contents, model=model, config=config):
             yield chunk.text
+
+    def close(self):
+        self.__client.close()

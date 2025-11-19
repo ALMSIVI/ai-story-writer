@@ -15,6 +15,7 @@ parser.add_argument(
 )
 parser.add_argument('-m', '--model', help='Model used to generate', required=True)
 parser.add_argument('-t', '--template', default='default', help='Template for prompt')
+parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
 
 
 def start():
@@ -70,7 +71,7 @@ def start():
     cli_story.chapters = previous_chapters
     story, chapters = cli_story.to_story_chapters(LlmModel.parse(args.model), args.template)
 
-    for event in generate_chapter(story, lore, current_chapter.outline, chapters, next_outline):
+    for event in generate_chapter(story, lore, current_chapter.outline, chapters, next_outline, args.convo):
         if isinstance(event, GenerationInProgressEvent):
             print(event.chunk, end='', flush=True)
         elif isinstance(event, GenerationCompletedEvent):

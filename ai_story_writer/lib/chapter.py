@@ -47,7 +47,9 @@ def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[Genera
                 lore = chapter.lore
                 break
 
-    for event in generate_chapter(story, lore, request.current_outline, previous_chapters, next_outline):
+    for event in generate_chapter(
+        story, lore, request.current_outline, previous_chapters, next_outline, story.include_full_convo
+    ):
         if isinstance(event, GenerationCompletedEvent):
             completed_event: GenerationCompletedEvent = event
             current_chapter = Chapter(
@@ -90,7 +92,7 @@ def regenerate_chapter(story_id: str, chapter_id: str):
     all_chapters = get_chapters(story_id)
     index = __find_chapter(story_id, chapter_id, all_chapters)
     chapter = all_chapters[index]
-    previous_chapters = all_chapters[: index]
+    previous_chapters = all_chapters[:index]
 
     next_outline = None
     if index < len(all_chapters) - 1:
@@ -103,7 +105,9 @@ def regenerate_chapter(story_id: str, chapter_id: str):
                 lore = chapter.lore
                 break
 
-    for event in generate_chapter(story, lore, chapter.outline, previous_chapters, next_outline):
+    for event in generate_chapter(
+        story, lore, chapter.outline, previous_chapters, next_outline, story.include_full_convo
+    ):
         if isinstance(event, GenerationCompletedEvent):
             completed_event: GenerationCompletedEvent = event
             write_chapters(story_id, all_chapters)
