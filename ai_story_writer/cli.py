@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from uuid import uuid4
-from ai_story_writer.setup import setup
+from ai_story_writer.setup import teardown, setup
 from ai_story_writer.lib.llm import generate_chapter
 from ai_story_writer.types import LlmModel, GenerationInProgressEvent, GenerationCompletedEvent
 from ai_story_writer.utils.cli import dump_story, parse_files
@@ -21,20 +21,20 @@ parser.add_argument('-c', '--convo', action='store_true', help='Include full con
 def start():
     setup()
     args = parser.parse_args()
-    
+
     txt_file = Path(args.file)
     md_file = txt_file.with_suffix('.md')
 
     id = args.id
     with txt_file.open() as f:
         txt_str = f.read()
-    
+
     if md_file.exists():
         with md_file.open() as f:
             md_str = f.read()
     else:
         md_str = ''
-    
+
     cli_story = parse_files(txt_str, md_str)
 
     if cli_story.id is None:
@@ -86,5 +86,9 @@ def start():
             with md_file.open('wt') as f:
                 f.write(md_str)
 
+
 if __name__ == 'main':
-    start()
+    try:
+        start()
+    finally:
+        teardown()

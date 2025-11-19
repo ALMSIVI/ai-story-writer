@@ -42,11 +42,18 @@ def add_client(provider: str, model_config: ModelConfig):
             clients[provider] = OpenAIClient(model_config.api_key, included_models, provider, model_config.base_url)
 
 
+def cleanup_clients():
+    for client in clients.values():
+        client.close()
+    clients.clear()
+
+
 def get_llm_models() -> list[LlmModel]:
     models: list[LlmModel] = []
     for client in clients.values():
         models += client.list_models()
     return models
+
 
 def __create_prompt(
     story: Story,
@@ -96,9 +103,7 @@ def __create_history(
         lore=lore,
     )
 
-    messages = [
-        Message(role=Role.SYSTEM, content=system_message)
-    ]
+    messages = [Message(role=Role.SYSTEM, content=system_message)]
 
     if previous_chapters is None:
         previous_chapters = []
@@ -117,7 +122,7 @@ def generate_chapter(
     current_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
-    include_full_convo: bool = False
+    include_full_convo: bool = False,
 ) -> Iterator[GenerationEvent]:
     if include_full_convo:
         messages = __create_history(story, lore, current_outline, previous_chapters)

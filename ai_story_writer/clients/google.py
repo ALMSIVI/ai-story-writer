@@ -25,9 +25,13 @@ class GoogleClient(LlmClient):
         return []
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        config = types.GenerateContentConfig(
-            system_instruction=next(message.content for message in messages if message.role == Role.SYSTEM)
-        )
+        try:
+            config = types.GenerateContentConfig(
+                system_instruction=next(message.content for message in messages if message.role == Role.SYSTEM)
+            )
+        except StopIteration:
+            config = None
+
         contents = [
             types.Content(
                 role='user' if message.role == Role.USER else 'model',

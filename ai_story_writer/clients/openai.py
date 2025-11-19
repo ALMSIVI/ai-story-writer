@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import OpenAI, omit
 from typing import Iterator
 from .__llm_client__ import LlmClient
 from ai_story_writer.types import Message, LlmModel, Role
@@ -24,7 +24,11 @@ class OpenAIClient(LlmClient):
         return []
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
+        try:
+            system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
+        except StopIteration:
+            system_message = omit
+
         client_messages: list[dict[str, str]] = [
             {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
         ]

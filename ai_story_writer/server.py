@@ -1,10 +1,16 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from ai_story_writer.setup import setup
+from ai_story_writer.setup import teardown, setup
 from ai_story_writer.routes import chapters_router, stories_router, models_router
 
 
-setup()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup()
+    yield
+    teardown()
+
 app = FastAPI()
 app.include_router(chapters_router)
 app.include_router(models_router)
