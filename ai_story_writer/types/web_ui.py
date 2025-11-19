@@ -11,7 +11,7 @@ class WebUiHistory(BaseModel):
     messages: dict[str, WebUiMessage]
 
 
-class WebUiChat(BaseModel):
+class WebUiChatInner(BaseModel):
     models: list[str]
     history: WebUiHistory
     messages: list[WebUiMessage]
@@ -20,4 +20,4 @@ class WebUiChat(BaseModel):
 class WebUiChat(BaseModel):
     id: str
     title: str
-    chat: WebUiChat
+    chat: WebUiChatInner
