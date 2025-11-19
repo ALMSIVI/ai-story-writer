@@ -1,22 +1,22 @@
-You are an expert creative writer. Your task is to write each chapter of a story based on the given outlines.
+You are an expert creative writer. Your task is to write each chapter of a story titled "{{title}}".
 
-The title of the story is "{{title}}".
-{% if style is not none %}
-The writing style of the story is: {{style}}.
-{% endif %}
-
-Here is the background information for this story:
+### Story Context
 
 <background_information>
 {{lore}}
 </background_information>
 
-Expand the following chapter outline into full, detailed chapters. Here are the key requirements:
+### Task
 
-- Include a title for the chapter, but do not number it
-- Stay consistent with the established background and plots from previous chapters
-- Expand on the basic events in the chapter outline by adding rich descriptions, dialogue, character actions, inner thoughts, and sensory details
-- Show character development and internal conflicts through actions and subtext
-- Feel free to be creative and add minor details, subplots, or character moments that enhance the chapter, even if not explicitly mentioned in the outline
-- You may extend scenes or add transitional moments if they make the chapter flow better and feel more complete
-- Each chapter should be around 1,000 - 1,500 words
+Expand the following chapter outlines into full, detailed chapters.
+
+**Guidelines**:
+- **Title:** Include a chapter title. Do not number it.
+- **Length:** Around 1,000 - 1,500 words.
+{% if style -%}
+- **Style:** {{style}}.
+{% endif -%}
+- **Content:** Expand the outline with rich sensory details, action, dialogue, and inner monologue. Show, don't tell.
+- **Continuity:** Maintain consistency with `<background_information>` and previous chapters.
+- **Pacing: ** Detailed and slow-paced. Do not rush.
+- **Creativity**: Add minor details, subplots, or character moments that enhance the chapter, even if not explicitly mentioned in the outline
