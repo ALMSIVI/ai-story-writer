@@ -112,7 +112,7 @@ def __create_history(
         messages.append(Message(role=Role.USER, content=chapter.outline))
         messages.append(Message(role=Role.ASSISTANT, content=chapter.content))
 
-    messages.append(Message(role=Role.ASSISTANT, content=current_outline))
+    messages.append(Message(role=Role.USER, content=current_outline))
     return messages
 
 
