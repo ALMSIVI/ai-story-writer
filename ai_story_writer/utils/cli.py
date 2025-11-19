@@ -62,6 +62,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
     story_info = txt_parts[0].split('\n\n')
 
     # Title is required, all others are optional
+    # Order is: id, title, style, chapter_count
     if len(story_info) == 4:
         story_id = story_info[0]
         title = story_info[1]
@@ -141,15 +142,24 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
 
 
 def dump_story(cli_story: CliStory) -> tuple[str, str]:
-    txt_parts = [cli_story.id, cli_story.title, '---']
-    md_parts = []
+    txt_parts: list[str] = []
+    if cli_story.id is not None:
+        txt_parts.append(cli_story.id)
+    txt_parts.append(cli_story.title)
+    if cli_story.style is not None:
+        txt_parts.append(cli_story.style)
+    if cli_story.chapter_count is not None:
+        txt_parts.append(str(cli_story.chapter_count))
+    txt_parts.append('---')
+
+    md_parts: list[str] = []
     for chapter in cli_story.chapters:
         if chapter.id is not None:
             txt_parts.append(chapter.id)
         if chapter.lore is not None:
             txt_parts.append(chapter.lore)
-        if chapter.outline is not None:
-            txt_parts.append(chapter.outline)
+
+        txt_parts.append(chapter.outline)
         txt_parts.append('---')
 
         if chapter.content is not None:
