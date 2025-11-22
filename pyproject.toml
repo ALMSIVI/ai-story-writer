@@ -1,31 +1,32 @@
-[tool.poetry]
+[project]
 name = "ai-story-writer"
 version = "0.1.0"
 description = ""
-authors = ["Yue Wu <wuyuejl97@gmail.com>"]
+authors = [{ name = "Yue Wu", email = "wuyuejl97@gmail.com" }]
+requires-python = ">=3.10,<4"
 readme = "README.md"
+dependencies = [
+    "openai>=2.3.0,<3",
+    "anthropic>=0.69.0,<0.70",
+    "google-genai>=1.43.0,<2",
+    "pydantic>=2.12.0,<3",
+    "fastapi[standard]>=0.118.3,<0.119",
+    "jinja2>=3.1.6,<4",
+    "sqlalchemy>=2.0.44,<3",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-openai = "^2.3.0"
-anthropic = "^0.69.0"
-google-genai = "^1.43.0"
-pydantic = "^2.12.0"
-fastapi = {extras = ["standard"], version = "^0.118.3"}
-jinja2 = "^3.1.6"
+[project.scripts]
+cli = "ai_story_writer.cli:start"
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.14.0"
+[dependency-groups]
+dev = ["ruff>=0.14.0,<0.15"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 120
-
-[tool.poetry.scripts]
-cli = 'ai_story_writer.cli:start'
 
 [tool.ruff.format]
 quote-style = 'single'
