@@ -5,7 +5,7 @@ from ai_story_writer.types import Message, LlmModel
 
 class LlmClient(ABC):
     provider: str
-    included_models: set[str]
+    supported_models: set[str]
 
     @abstractmethod
     def list_models(self) -> list[LlmModel]:

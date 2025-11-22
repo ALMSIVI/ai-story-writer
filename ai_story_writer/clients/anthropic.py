@@ -8,20 +8,21 @@ class AnthropicClient(LlmClient):
     provider = 'Anthropic'
     __client: Anthropic
 
-    def __init__(self, api_key: str, included_models: set[str]):
+    def __init__(self, api_key: str, supported_models: set[str]):
         self.__client = Anthropic(api_key=api_key)
-        self.included_models = included_models
+        self.supported_models = supported_models
 
     def list_models(self) -> list[LlmModel]:
         models = self.__client.models.list()
         model_names = [model.id for model in models]
-        if len(self.included_models) > 0:
-            return [
-                LlmModel(provider=self.provider, name=model_name)
-                for model_name in model_names
-                if model_name in self.included_models
-            ]
-        return []
+        if len(self.supported_models) == 0:
+            self.supported_models = set(model_names)
+
+        return [
+            LlmModel(provider=self.provider, name=model_name)
+            for model_name in model_names
+            if model_name in self.supported_models
+        ]
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
         try:

@@ -32,14 +32,14 @@ def __create_generation_id():
 
 
 def add_client(provider: str, model_config: ModelConfig):
-    included_models = set(model_config.included_models if model_config.included_models is not None else [])
+    supported_models = set(model_config.supported_models if model_config.supported_models is not None else [])
     match provider:
         case 'Anthropic':
-            clients[provider] = AnthropicClient(model_config.api_key, included_models)
+            clients[provider] = AnthropicClient(model_config.api_key, supported_models)
         case 'Google':
-            clients[provider] = GoogleClient(model_config.api_key, included_models)
+            clients[provider] = GoogleClient(model_config.api_key, supported_models)
         case _:
-            clients[provider] = OpenAIClient(model_config.api_key, included_models, provider, model_config.base_url)
+            clients[provider] = OpenAIClient(model_config.api_key, supported_models, provider, model_config.base_url)
 
 
 def cleanup_clients():
@@ -134,6 +134,10 @@ def generate_chapter(
     model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
+
+    client = clients[model.provider]
+    if model.name not in client.supported_models:
+        raise ValueError(f'model {model.name} not supported in client {model.provider}')
 
     try:
         generation = clients[model.provider].generate(messages, model.name)

@@ -2,6 +2,6 @@
     "OpenAI": {
         "baseURL": "https://api.openai.com/v1",
         "apiKey": "<your-key-here>",
-        "includedModels": ["gpt-5"]
+        "supportedModels": ["gpt-5"]
     }
 }
