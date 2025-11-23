@@ -2,7 +2,7 @@ from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from typing import Iterator
 from uuid import UUID, uuid4
-from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient
+from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient
 from ai_story_writer.types import (
     Chapter,
     Message,
@@ -38,6 +38,13 @@ def add_client(provider: str, model_config: ModelConfig):
             clients[provider] = AnthropicClient(model_config.api_key, supported_models)
         case 'Google':
             clients[provider] = GoogleClient(model_config.api_key, supported_models)
+        case 'Ollama':
+            clients[provider] = OllamaClient(
+                api_key=model_config.api_key,
+                supported_models=supported_models,
+                provider=provider,
+                base_url=model_config.base_url,
+            )
         case _:
             clients[provider] = OpenAIClient(model_config.api_key, supported_models, provider, model_config.base_url)
 
