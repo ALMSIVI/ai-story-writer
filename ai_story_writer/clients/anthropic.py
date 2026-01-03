@@ -8,8 +8,9 @@ class AnthropicClient(LlmClient):
     provider = 'Anthropic'
     __client: Anthropic
 
-    def __init__(self, api_key: str, supported_models: set[str]):
-        self.__client = Anthropic(api_key=api_key)
+    def __init__(self, api_key: str, supported_models: set[str], provider: str = 'Anthropic', base_url: str | None = None):
+        self.__client = Anthropic(api_key=api_key, base_url=base_url)
+        self.provider = provider
         self.supported_models = supported_models
 
     def list_models(self) -> list[LlmModel]:

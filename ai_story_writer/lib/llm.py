@@ -46,7 +46,12 @@ def add_client(provider: str, model_config: ModelConfig):
                 base_url=model_config.base_url,
             )
         case _:
-            clients[provider] = OpenAIClient(model_config.api_key, supported_models, provider, model_config.base_url)
+            sdk = model_config.base_sdk
+            match sdk:
+                case 'Anthropic':
+                    clients[provider] = AnthropicClient(model_config.api_key, supported_models, provider, model_config.base_url)
+                case _:   
+                    clients[provider] = OpenAIClient(model_config.api_key, supported_models, provider, model_config.base_url)
 
 
 def cleanup_clients():
