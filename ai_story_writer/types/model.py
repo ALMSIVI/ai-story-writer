@@ -13,7 +13,6 @@ class LlmModel(BaseModel):
         try:
             index = model_str.index('.')
         except ValueError:
-            # TODO: local model support
             raise ValueError(f'Failed to parse model {model_str}')
 
         return cls(provider=model_str[:index], name=model_str[index + 1 :])
