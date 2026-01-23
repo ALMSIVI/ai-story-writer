@@ -83,11 +83,11 @@ def __create_prompt(
 
     if story.chapter_count is not None and len(previous_chapters) > story.chapter_count:
         summary_length = len(previous_chapters) - story.chapter_count
-        summary = '\n\n'.join([chapter.outline for chapter in previous_chapters[:summary_length]])
-        previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters[summary_length:]])
+        summary = '\n\n'.join([chapter.full_outline for chapter in previous_chapters[:summary_length]])
+        previous_contents = '\n\n'.join([chapter.full_content for chapter in previous_chapters[summary_length:]])
     else:
         summary = None
-        previous_contents = '\n\n'.join([chapter.content for chapter in previous_chapters])
+        previous_contents = '\n\n'.join([chapter.full_content for chapter in previous_chapters])
     if next_outline is None:
         next_outline = ''
 

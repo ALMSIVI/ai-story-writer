@@ -23,6 +23,15 @@ def __find_chapter(story_id: str, chapter_id: str, chapters: list[Chapter] | Non
     except StopIteration:
         raise KeyError(f'Chapter {chapter_id} not found')
 
+def __find_lore(initial_lore: str | None, previous_chapters: list[Chapter]) -> str:
+    if initial_lore is not None:
+        return initial_lore
+    for chapter in reversed(previous_chapters):
+        if chapter.lore is not None:
+            return chapter.lore
+    
+    raise ValueError('Cannot find lore for the story')
+
 
 def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[GenerationEvent]:
     story = get_story(story_id)
@@ -40,12 +49,7 @@ def add_chapter(story_id: str, request: CreateChapterRequest) -> Iterator[Genera
     if len(previous_chapters) != len(all_chapters):
         next_outline = all_chapters[index + 2].outline
 
-    lore = request.lore
-    if lore is None:
-        for chapter in reversed(previous_chapters):
-            if chapter.lore is not None:
-                lore = chapter.lore
-                break
+    lore = __find_lore(request.lore, previous_chapters)
 
     for event in generate_chapter(
         story, lore, request.current_outline, previous_chapters, next_outline, story.include_full_convo
@@ -98,12 +102,7 @@ def regenerate_chapter(story_id: str, chapter_id: str):
     if index < len(all_chapters) - 1:
         next_outline = all_chapters[index + 1].outline
 
-    lore = chapter.lore
-    if lore is None:
-        for chapter in reversed(previous_chapters):
-            if chapter.lore is not None:
-                lore = chapter.lore
-                break
+    lore = __find_lore(chapter.lore, previous_chapters)
 
     for event in generate_chapter(
         story, lore, chapter.outline, previous_chapters, next_outline, story.include_full_convo
