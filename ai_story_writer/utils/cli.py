@@ -44,7 +44,7 @@ def __parse_md(md_str: str) -> list[str]:
     current_section = []
 
     for line in md_str.splitlines():
-        if line.startswith('#'):
+        if line.startswith('# '):
             if current_section:
                 sections.append('\n'.join(current_section).strip())
                 current_section = []
