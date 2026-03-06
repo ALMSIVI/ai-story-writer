@@ -1,28 +1,23 @@
-from argparse import ArgumentParser
-from pathlib import Path
 import sys
+from argparse import ArgumentParser, Namespace
+from pathlib import Path
 from uuid import uuid4
-from ai_story_writer.setup import teardown, setup
+from pydantic import TypeAdapter
 from ai_story_writer.lib.llm import generate_chapter
-from ai_story_writer.types import LlmModel, GenerationInProgressEvent, GenerationCompletedEvent, GenerationErrorEvent
-from ai_story_writer.utils.cli import dump_story, parse_files
+from ai_story_writer.lib.web_ui import convert_to_story
+from ai_story_writer.setup import teardown, setup
+from ai_story_writer.types import (
+    LlmModel,
+    GenerationInProgressEvent,
+    GenerationCompletedEvent,
+    GenerationErrorEvent,
+    WebUiChat,
+)
+from ai_story_writer.utils.cli import CliStory, dump_story, parse_files
 from ai_story_writer.utils.id import generate_id
 
 
-parser = ArgumentParser()
-parser.add_argument('-f', '--file', help='text file to store the story', required=True)
-parser.add_argument(
-    '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
-)
-parser.add_argument('-m', '--model', help='Model used to generate', required=True)
-parser.add_argument('-t', '--template', default='default', help='Template for prompt')
-parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
-
-
-def start():
-    setup()
-    args = parser.parse_args()
-
+def generate(args: Namespace):
     txt_file = Path(args.file)
     md_file = txt_file.with_suffix('.md')
 
@@ -89,8 +84,50 @@ def start():
         elif isinstance(event, GenerationErrorEvent):
             print(f'Encountered error {event.message}', file=sys.stderr)
 
-if __name__ == 'main':
+
+def webui(args: Namespace):
+    file = Path(args.file)
+    with file.open() as f:
+        chat_list_validator = TypeAdapter(list[WebUiChat])
+        chats = chat_list_validator.validate_json(f.read())
+    for chat in chats:
+        story, chapters = convert_to_story(chat)
+        cli_story = CliStory.from_story_chapters(story, chapters)
+        txt_str, md_str = dump_story(cli_story)
+        with file.with_name(story.title + '.txt').open('wt') as f:
+            f.write(txt_str)
+        with file.with_name(story.title + '.md').open('wt') as f:
+            f.write(md_str)
+
+
+parser = ArgumentParser()
+subparsers = parser.add_subparsers(help='Tools provided by this package.', dest='command', required=True)
+
+generate_parser = subparsers.add_parser('generate', description='Generates a chapter.')
+generate_parser.add_argument('-f', '--file', help='text file to store the story', required=True)
+generate_parser.add_argument(
+    '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
+)
+generate_parser.add_argument('-m', '--model', help='Model used to generate', required=True)
+generate_parser.add_argument('-t', '--template', default='default', help='Template for prompt')
+generate_parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
+generate_parser.set_defaults(func=generate)
+
+
+# generate_docs
+webui_parser = subparsers.add_parser('webui', description='Converts from Open WebUI json to writer files.')
+webui_parser.add_argument('-f', '--file', help='Open WebUI json file to convert', required=True)
+webui_parser.set_defaults(func=webui)
+
+
+def start():
     try:
-        start()
+        setup()
+        args = parser.parse_args()
+        args.func(args)
     finally:
         teardown()
+
+
+if __name__ == 'main':
+    start()

@@ -16,6 +16,10 @@ class CliChapter(BaseModel):
             raise ValueError(f'content is None for chapter {self.id}')
         return Chapter(id=self.id, outline=self.outline, content=self.content, lore=self.lore)
 
+    @staticmethod
+    def from_chapter(chapter: Chapter) -> 'CliChapter':
+        return CliChapter(id=chapter.id, lore=chapter.lore, outline=chapter.outline, content=chapter.full_content)
+
 
 class CliStory(BaseModel):
     id: str | None = None
@@ -37,6 +41,13 @@ class CliStory(BaseModel):
         )
         chapters = [chapter.to_chapter() for chapter in self.chapters]
         return story, chapters
+
+    @staticmethod
+    def from_story_chapters(story: Story, chapters: list[Chapter]) -> 'CliStory':
+        cli_chapters = [CliChapter.from_chapter(chapter) for chapter in chapters]
+        return CliStory(
+            id=story.id, title=story.title, style=story.style, chapter_count=story.chapter_count, chapters=cli_chapters
+        )
 
 
 def __parse_md(md_str: str) -> list[str]:
@@ -74,7 +85,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
             story_id = story_info[0]
         except ValueError:
             story_id = None
-        
+
         if story_id is not None:
             title = story_info[1]
             try:
@@ -93,7 +104,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
             story_id = story_info[0]
         except ValueError:
             story_id = None
-        
+
         if story_id is not None:
             title = story_info[1]
             style = None

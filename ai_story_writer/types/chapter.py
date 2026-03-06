@@ -17,10 +17,10 @@ class Chapter(BaseModel):
         if isinstance(data, dict):  
             content = data.get('content')
             if isinstance(content, str):
-                lines = [line for line in content.splitlines() if line.strip() != '']
+                lines = [line for line in content.splitlines()]
                 if lines and lines[0].startswith('# '):
                     data['title'] = lines[0][2:].strip()
-                    data['content'] = '\n\n'.join(lines[1:]).lstrip()
+                    data['content'] = '\n'.join(lines[1:]).lstrip()
 
         return data
 
