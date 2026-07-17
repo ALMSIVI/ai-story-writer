@@ -53,7 +53,7 @@ def cleanup_clients():
     clients.clear()
 
 
-def __create_prompt(
+def _create_prompt(
     story: Story,
     template: str,
     lore: str,
@@ -88,7 +88,7 @@ def __create_prompt(
     )
 
 
-def __create_history(
+def _create_history(
     story: Story,
     template: str,
     lore: str,
@@ -118,6 +118,23 @@ def __create_history(
     return messages
 
 
+def create_messages(
+    story: Story,
+    template: str,
+    lore: str,
+    current_outline: str,
+    previous_chapters: list[Chapter] | None,
+    next_outline: str | None,
+    include_full_convo: bool = False,
+) -> list[Message]:
+    """Build the complete LLM input without contacting a provider."""
+    if include_full_convo:
+        return _create_history(story, template, lore, current_outline, previous_chapters)
+
+    prompt = _create_prompt(story, template, lore, current_outline, previous_chapters, next_outline)
+    return [Message(role=Role.USER, content=prompt)]
+
+
 def generate_chapter(
     story: Story,
     model: LlmModel,
@@ -128,11 +145,15 @@ def generate_chapter(
     next_outline: str | None,
     include_full_convo: bool = False,
 ) -> Iterator[GenerationEvent]:
-    if include_full_convo:
-        messages = __create_history(story, template, lore, current_outline, previous_chapters)
-    else:
-        prompt = __create_prompt(story, template, lore, current_outline, previous_chapters, next_outline)
-        messages = [Message(role=Role.USER, content=prompt)]
+    messages = create_messages(
+        story,
+        template,
+        lore,
+        current_outline,
+        previous_chapters,
+        next_outline,
+        include_full_convo,
+    )
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
 
