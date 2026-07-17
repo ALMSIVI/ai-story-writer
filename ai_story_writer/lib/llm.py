@@ -1,17 +1,14 @@
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from typing import Iterator
-from uuid import UUID, uuid4
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient
 from ai_story_writer.types import (
     Chapter,
     Message,
     ModelConfig,
-    LlmModel,
     Role,
     Story,
     GenerationEvent,
-    GenerationStartedEvent,
     GenerationInProgressEvent,
     GenerationCompletedEvent,
     GenerationErrorEvent,
@@ -20,17 +17,6 @@ from ai_story_writer.types import (
 templates_path = Path('config', 'templates')
 jinja_env = Environment(loader=FileSystemLoader(templates_path))
 clients: dict[str, LlmClient] = {}
-generations: set[UUID] = set()
-
-
-def __create_generation_id():
-    while True:
-        id = uuid4()
-        if id not in generations:
-            generations.add(id)
-            return id
-
-
 def add_client(provider: str, model_config: ModelConfig):
     supported_models = set(model_config.supported_models if model_config.supported_models is not None else [])
     match provider:
@@ -58,13 +44,6 @@ def cleanup_clients():
     for client in clients.values():
         client.close()
     clients.clear()
-
-
-def get_llm_models() -> list[LlmModel]:
-    models: list[LlmModel] = []
-    for client in clients.values():
-        models += client.list_models()
-    return models
 
 
 def __create_prompt(
@@ -153,22 +132,11 @@ def generate_chapter(
 
     try:
         generation = clients[model.provider].generate(messages, model.name)
-        generation_id = __create_generation_id()
         content = ''
-        yield GenerationStartedEvent(id=str(generation_id))
         for chunk in generation:
-            if generation_id not in generations:
-                yield GenerationCompletedEvent(interrupted=True, content=content)
-                return
-
             content += chunk
             yield GenerationInProgressEvent(chunk=chunk)
 
-        generations.remove(generation_id)
-        yield GenerationCompletedEvent(interrupted=False, content=content)
+        yield GenerationCompletedEvent(content=content)
     except Exception as e:
         yield GenerationErrorEvent(message=str(e))
-
-
-def stop_generation(generation_id: str):
-    generations.remove(UUID(generation_id))
