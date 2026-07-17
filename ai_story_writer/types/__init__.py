@@ -4,7 +4,6 @@ from .model import LlmModel
 from .llm_client import Role, Message
 from .events import GenerationEvent, GenerationInProgressEvent, GenerationCompletedEvent, GenerationErrorEvent
 from .story import Story
-from .web_ui import WebUiChat
 
 
 __all__ = [
@@ -18,5 +17,4 @@ __all__ = [
     'GenerationCompletedEvent',
     'GenerationErrorEvent',
     'Story',
-    'WebUiChat',
 ]

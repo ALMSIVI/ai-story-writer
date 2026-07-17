@@ -2,18 +2,15 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from uuid import uuid4
-from pydantic import TypeAdapter
 from ai_story_writer.lib.llm import generate_chapter
-from ai_story_writer.lib.web_ui import convert_to_story
 from ai_story_writer.setup import teardown, setup
 from ai_story_writer.types import (
     LlmModel,
     GenerationInProgressEvent,
     GenerationCompletedEvent,
     GenerationErrorEvent,
-    WebUiChat,
 )
-from ai_story_writer.utils.cli import CliStory, dump_story, parse_files
+from ai_story_writer.utils.cli import dump_story, parse_files
 from ai_story_writer.utils.id import generate_id
 
 
@@ -85,21 +82,6 @@ def generate(args: Namespace):
             print(f'Encountered error {event.message}', file=sys.stderr)
 
 
-def webui(args: Namespace):
-    file = Path(args.file)
-    with file.open() as f:
-        chat_list_validator = TypeAdapter(list[WebUiChat])
-        chats = chat_list_validator.validate_json(f.read())
-    for chat in chats:
-        story, chapters = convert_to_story(chat)
-        cli_story = CliStory.from_story_chapters(story, chapters)
-        txt_str, md_str = dump_story(cli_story)
-        with file.with_name(story.title + '.txt').open('wt') as f:
-            f.write(txt_str)
-        with file.with_name(story.title + '.md').open('wt') as f:
-            f.write(md_str)
-
-
 parser = ArgumentParser()
 subparsers = parser.add_subparsers(help='Tools provided by this package.', dest='command', required=True)
 
@@ -112,12 +94,6 @@ generate_parser.add_argument('-m', '--model', help='Model used to generate', req
 generate_parser.add_argument('-t', '--template', default='default', help='Template for prompt')
 generate_parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
 generate_parser.set_defaults(func=generate)
-
-
-# generate_docs
-webui_parser = subparsers.add_parser('webui', description='Converts from Open WebUI json to writer files.')
-webui_parser.add_argument('-f', '--file', help='Open WebUI json file to convert', required=True)
-webui_parser.set_defaults(func=webui)
 
 
 def start():
