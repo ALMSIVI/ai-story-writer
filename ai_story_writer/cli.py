@@ -5,6 +5,7 @@ from uuid import uuid4
 from ai_story_writer.lib.llm import generate_chapter
 from ai_story_writer.setup import teardown, setup
 from ai_story_writer.types import (
+    Chapter,
     LlmModel,
     GenerationInProgressEvent,
     GenerationCompletedEvent,
@@ -28,12 +29,12 @@ def generate(args: Namespace):
     else:
         md_str = ''
 
-    cli_story = parse_files(txt_str, md_str)
+    story = parse_files(txt_str, md_str)
 
-    if cli_story.id is None:
-        cli_story.id = str(uuid4())
+    if story.id is None:
+        story.id = str(uuid4())
 
-    all_chapters = cli_story.chapters
+    all_chapters = story.chapters
 
     if id is None:
         # Generate first chapter without id
@@ -61,19 +62,28 @@ def generate(args: Namespace):
     if index < len(all_chapters) - 1:
         next_outline = all_chapters[index + 1].outline
 
-    cli_story.chapters = previous_chapters
-    story, chapters = cli_story.to_story_chapters(LlmModel.parse(args.model), args.template)
-
-    for event in generate_chapter(story, lore, current_chapter.outline, chapters, next_outline, args.convo):
+    model = LlmModel.parse(args.model)
+    for event in generate_chapter(
+        story,
+        model,
+        args.template,
+        lore,
+        current_chapter.outline,
+        previous_chapters,
+        next_outline,
+        args.convo,
+    ):
         if isinstance(event, GenerationInProgressEvent):
             print(event.chunk, end='', flush=True)
         elif isinstance(event, GenerationCompletedEvent):
-            content: str = event.content
-            current_chapter.content = content
-            if current_chapter.id is None:
-                current_chapter.id = generate_id(chapters)
-            cli_story.chapters = all_chapters
-            txt_str, md_str = dump_story(cli_story)
+            chapter_id = current_chapter.id or generate_id(all_chapters)
+            all_chapters[index] = Chapter(
+                id=chapter_id,
+                lore=current_chapter.lore,
+                outline=current_chapter.outline,
+                content=event.content,
+            )
+            txt_str, md_str = dump_story(story)
             with txt_file.open('wt') as f:
                 f.write(txt_str)
             with md_file.open('wt') as f:

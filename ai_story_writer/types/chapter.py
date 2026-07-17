@@ -1,15 +1,13 @@
 from pydantic import BaseModel, model_validator
 from typing import Any
-from .model import LlmModel
 
 
 class Chapter(BaseModel):
-    id: str
+    id: str | None = None
     outline: str
     title: str | None = None
-    content: str
+    content: str | None = None
     lore: str | None = None
-    model: LlmModel | None = None
 
     @model_validator(mode='before')
     @classmethod
@@ -25,14 +23,16 @@ class Chapter(BaseModel):
         return data
 
     @property
-    def full_content(self):
+    def full_content(self) -> str:
+        if self.content is None:
+            raise ValueError('chapter content is missing')
         if self.title is None:
             return self.content
 
         return '# ' + self.title + '\n\n' + self.content
 
     @property
-    def full_outline(self):
+    def full_outline(self) -> str:
         if self.title is None:
             return self.outline
 

@@ -1,41 +1,5 @@
-from pydantic import BaseModel
 from uuid import UUID
-from ai_story_writer.types import Story, Chapter, LlmModel
-
-
-class CliChapter(BaseModel):
-    id: str | None = None
-    lore: str | None = None
-    outline: str
-    content: str | None = None
-
-    def to_chapter(self) -> Chapter:
-        if self.id is None:
-            raise ValueError('id is None for chapter')
-        if self.content is None:
-            raise ValueError(f'content is None for chapter {self.id}')
-        return Chapter(id=self.id, outline=self.outline, content=self.content, lore=self.lore)
-
-class CliStory(BaseModel):
-    id: str | None = None
-    title: str
-    style: str | None = None
-    chapter_count: int | None = None
-    chapters: list[CliChapter]
-
-    def to_story_chapters(self, model: LlmModel, template: str) -> tuple[Story, list[Chapter]]:
-        if self.id is None:
-            raise ValueError('id is None for story')
-        story = Story(
-            id=self.id,
-            title=self.title,
-            model=model,
-            style=self.style,
-            template=template,
-            chapterCount=self.chapter_count,
-        )
-        chapters = [chapter.to_chapter() for chapter in self.chapters]
-        return story, chapters
+from ai_story_writer.types import Story, Chapter
 
 def __parse_md(md_str: str) -> list[str]:
     sections = []
@@ -54,7 +18,7 @@ def __parse_md(md_str: str) -> list[str]:
     return sections
 
 
-def parse_files(txt_str: str, md_str: str) -> CliStory:
+def parse_files(txt_str: str, md_str: str) -> Story:
     contents = __parse_md(md_str)
     txt_parts = txt_str.split('\n\n---\n\n')
     story_info = txt_parts[0].split('\n\n')
@@ -110,7 +74,7 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
         style = None
         chapter_count = None
 
-    chapters: list[CliChapter] = []
+    chapters: list[Chapter] = []
     txt_parts = txt_parts[1:]
     for i in range(0, len(txt_parts)):
         chapter_info = txt_parts[i].split('\n\n')
@@ -134,24 +98,24 @@ def parse_files(txt_str: str, md_str: str) -> CliStory:
             outline = chapter_info[0]
 
         content = contents[i] if i < len(contents) else None
-        chapters.append(CliChapter(id=chapter_id, lore=lore, outline=outline, content=content))
+        chapters.append(Chapter(id=chapter_id, lore=lore, outline=outline, content=content))
 
-    return CliStory(id=story_id, title=title, style=style, chapter_count=chapter_count, chapters=chapters)
+    return Story(id=story_id, title=title, style=style, chapter_count=chapter_count, chapters=chapters)
 
 
-def dump_story(cli_story: CliStory) -> tuple[str, str]:
+def dump_story(story: Story) -> tuple[str, str]:
     txt_parts: list[str] = []
-    if cli_story.id is not None:
-        txt_parts.append(cli_story.id)
-    txt_parts.append(cli_story.title)
-    if cli_story.style is not None:
-        txt_parts.append(cli_story.style)
-    if cli_story.chapter_count is not None:
-        txt_parts.append(str(cli_story.chapter_count))
+    if story.id is not None:
+        txt_parts.append(story.id)
+    txt_parts.append(story.title)
+    if story.style is not None:
+        txt_parts.append(story.style)
+    if story.chapter_count is not None:
+        txt_parts.append(str(story.chapter_count))
     txt_parts.append('---')
 
     md_parts: list[str] = []
-    for chapter in cli_story.chapters:
+    for chapter in story.chapters:
         if chapter.id is not None:
             txt_parts.append(chapter.id)
         if chapter.lore is not None:
@@ -161,7 +125,7 @@ def dump_story(cli_story: CliStory) -> tuple[str, str]:
         txt_parts.append('---')
 
         if chapter.content is not None:
-            md_parts.append(chapter.content)
+            md_parts.append(chapter.full_content)
 
     # Remove final ---
     txt_parts = txt_parts[:-1]

@@ -4,6 +4,7 @@ from typing import Iterator
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient
 from ai_story_writer.types import (
     Chapter,
+    LlmModel,
     Message,
     ModelConfig,
     Role,
@@ -17,6 +18,8 @@ from ai_story_writer.types import (
 templates_path = Path('config', 'templates')
 jinja_env = Environment(loader=FileSystemLoader(templates_path))
 clients: dict[str, LlmClient] = {}
+
+
 def add_client(provider: str, model_config: ModelConfig):
     supported_models = set(model_config.supported_models if model_config.supported_models is not None else [])
     match provider:
@@ -35,9 +38,13 @@ def add_client(provider: str, model_config: ModelConfig):
             sdk = model_config.base_sdk
             match sdk:
                 case 'Anthropic':
-                    clients[provider] = AnthropicClient(model_config.api_key, supported_models, provider, model_config.base_url)
-                case _:   
-                    clients[provider] = OpenAIClient(model_config.api_key, supported_models, provider, model_config.base_url)
+                    clients[provider] = AnthropicClient(
+                        model_config.api_key, supported_models, provider, model_config.base_url
+                    )
+                case _:
+                    clients[provider] = OpenAIClient(
+                        model_config.api_key, supported_models, provider, model_config.base_url
+                    )
 
 
 def cleanup_clients():
@@ -48,13 +55,13 @@ def cleanup_clients():
 
 def __create_prompt(
     story: Story,
+    template: str,
     lore: str,
     current_outline: str,
     previous_chapters: list[Chapter] | None,
     next_outline: str | None,
 ) -> str:
-    template_name = story.template if story.template is not None else 'default'
-    template_name = f'{template_name}.jinja'
+    template_name = f'{template}.jinja'
     template = jinja_env.get_template(template_name)
 
     if previous_chapters is None:
@@ -83,12 +90,12 @@ def __create_prompt(
 
 def __create_history(
     story: Story,
+    template: str,
     lore: str,
     current_outline: str,
     previous_chapters: list[Chapter] | None,
 ) -> list[Message]:
-    template_name = story.template if story.template is not None else 'default-full'
-    template_name = f'{template_name}.jinja'
+    template_name = f'{template}.jinja'
     template = jinja_env.get_template(template_name)
     system_message = template.render(
         title=story.title,
@@ -102,6 +109,8 @@ def __create_history(
         previous_chapters = []
 
     for chapter in previous_chapters:
+        if chapter.content is None:
+            raise ValueError(f'chapter {chapter.id or chapter.outline!r} content is missing')
         messages.append(Message(role=Role.USER, content=chapter.outline))
         messages.append(Message(role=Role.ASSISTANT, content=chapter.content))
 
@@ -111,6 +120,8 @@ def __create_history(
 
 def generate_chapter(
     story: Story,
+    model: LlmModel,
+    template: str,
     lore: str,
     current_outline: str,
     previous_chapters: list[Chapter] | None,
@@ -118,11 +129,10 @@ def generate_chapter(
     include_full_convo: bool = False,
 ) -> Iterator[GenerationEvent]:
     if include_full_convo:
-        messages = __create_history(story, lore, current_outline, previous_chapters)
+        messages = __create_history(story, template, lore, current_outline, previous_chapters)
     else:
-        prompt = __create_prompt(story, lore, current_outline, previous_chapters, next_outline)
+        prompt = __create_prompt(story, template, lore, current_outline, previous_chapters, next_outline)
         messages = [Message(role=Role.USER, content=prompt)]
-    model = story.model
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')
 
