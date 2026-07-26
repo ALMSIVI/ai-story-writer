@@ -11,8 +11,8 @@ from ai_story_writer.types import (
     GenerationCompletedEvent,
     GenerationErrorEvent,
 )
-from ai_story_writer.utils.cli import dump_markdown, parse_files
 from ai_story_writer.utils.id import generate_id
+from ai_story_writer.utils.markdown import dump_markdown
 from ai_story_writer.utils.yaml import StoryFileError, YamlStoryDocument
 
 
@@ -20,14 +20,8 @@ class CliError(ValueError):
     pass
 
 
-def _require_suffix(path: Path, suffix: str, description: str) -> None:
-    if path.suffix != suffix:
-        raise CliError(f'{description} must use the {suffix} extension: {path}')
-
-
 def generate(args: Namespace):
     yaml_file = Path(args.file)
-    _require_suffix(yaml_file, '.yaml', 'Story instruction file')
     md_file = yaml_file.with_suffix('.md')
 
     with yaml_file.open() as f:
@@ -107,31 +101,6 @@ def generate(args: Namespace):
             print(f'Encountered error {event.message}', file=sys.stderr)
 
 
-def migrate(args: Namespace):
-    txt_file = Path(args.file)
-    _require_suffix(txt_file, '.txt', 'Legacy story instruction file')
-    yaml_file = txt_file.with_suffix('.yaml')
-
-    if yaml_file.exists():
-        raise CliError(f'Refusing to overwrite existing YAML file: {yaml_file}')
-
-    try:
-        with txt_file.open() as f:
-            txt_str = f.read()
-        story = parse_files(txt_str, '')
-        yaml_str = YamlStoryDocument.from_story(story).dump()
-        with yaml_file.open('x') as f:
-            f.write(yaml_str)
-    except FileExistsError as error:
-        raise CliError(f'Refusing to overwrite existing YAML file: {yaml_file}') from error
-    except (OSError, ValueError) as error:
-        if isinstance(error, CliError):
-            raise
-        raise CliError(f'Could not migrate {txt_file}: {error}') from error
-
-    print(f'Migrated {txt_file} to {yaml_file}')
-
-
 parser = ArgumentParser()
 subparsers = parser.add_subparsers(help='Tools provided by this package.', dest='command', required=True)
 
@@ -152,21 +121,12 @@ generate_parser.add_argument(
 )
 generate_parser.set_defaults(func=generate)
 
-migrate_parser = subparsers.add_parser('migrate', description='Migrates a legacy TXT story to YAML.')
-migrate_parser.add_argument('-f', '--file', help='legacy TXT story instruction file', required=True)
-migrate_parser.set_defaults(func=migrate)
-
 
 def start():
     args = parser.parse_args()
     if args.command == 'generate':
         if not args.dry_run and args.model is None:
             parser.error('the following arguments are required: -m/--model')
-
-        try:
-            _require_suffix(Path(args.file), '.yaml', 'Story instruction file')
-        except CliError as error:
-            parser.error(f'{error}. Migrate legacy TXT files with: cli migrate --file story.txt')
 
     requires_setup = args.command == 'generate' and (not args.dry_run or args.model is not None)
     try:

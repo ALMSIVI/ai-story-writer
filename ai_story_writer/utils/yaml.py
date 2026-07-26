@@ -8,7 +8,7 @@ from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from ai_story_writer.types import Chapter, Story
-from ai_story_writer.utils.cli import parse_markdown
+from ai_story_writer.utils.markdown import parse_markdown
 
 
 class StoryFileError(ValueError):
