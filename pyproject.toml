@@ -18,7 +18,11 @@ dependencies = [
 cli = "ai_story_writer.cli:start"
 
 [dependency-groups]
-dev = ["ruff>=0.14.0,<0.15"]
+dev = [
+    "pytest==9.1.1",
+    "pytest-mock==3.15.1",
+    "ruff>=0.14.0,<0.15",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -29,3 +33,6 @@ line-length = 120
 
 [tool.ruff.format]
 quote-style = 'single'
+
+[tool.pytest.ini_options]
+testpaths = ['tests']
