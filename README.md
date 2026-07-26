@@ -23,19 +23,19 @@ chapters:
 Generate a chapter:
 
 ```sh
-cli generate --file story.yaml --model OpenAI.gpt-5
+cli generate story.yaml --model OpenAI.gpt-5
 ```
 
 Print the complete rendered prompt without initializing or contacting an LLM provider:
 
 ```sh
-cli generate --file story.yaml --dry-run
+cli generate story.yaml --dry-run
 ```
 
 Provide a model to also request and print the provider's input token count:
 
 ```sh
-cli generate --file story.yaml --model OpenAI.gpt-5 --dry-run
+cli generate story.yaml --model OpenAI.gpt-5 --dry-run
 ```
 
 `--dry-run` respects `--template`, `--id`, and `--convo`. In conversation mode,

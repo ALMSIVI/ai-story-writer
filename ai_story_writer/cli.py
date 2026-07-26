@@ -105,7 +105,7 @@ parser = ArgumentParser()
 subparsers = parser.add_subparsers(help='Tools provided by this package.', dest='command', required=True)
 
 generate_parser = subparsers.add_parser('generate', description='Generates a chapter.')
-generate_parser.add_argument('-f', '--file', help='YAML story instruction file', required=True)
+generate_parser.add_argument('file', help='YAML story instruction file')
 generate_parser.add_argument(
     '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
 )
@@ -117,7 +117,10 @@ generate_parser.add_argument(
 generate_parser.add_argument('-t', '--template', default='default', help='Template for prompt')
 generate_parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
 generate_parser.add_argument(
-    '--dry-run', action='store_true', help='Print the full prompt and, when --model is provided, its input token count'
+    '-d',
+    '--dry-run',
+    action='store_true',
+    help='Print the full prompt and, when --model is provided, its input token count',
 )
 generate_parser.set_defaults(func=generate)
 
