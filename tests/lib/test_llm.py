@@ -1,5 +1,6 @@
 import pytest
 from jinja2 import Environment
+from pytest_mock import MockerFixture
 
 from ai_story_writer.lib import llm
 from ai_story_writer.types import (
@@ -109,6 +110,30 @@ def test_generate_chapter(template_environment: Environment):
     assert len(messages) == 1
     assert messages[0].role == Role.USER
     assert 'current=Outline' in messages[0].content
+
+
+def test_count_input_tokens(mocker: MockerFixture):
+    client = MockClient()
+    llm.clients['test'] = client
+    messages = [Message(role=Role.USER, content='Prompt')]
+
+    input_tokens = llm.count_input_tokens(messages, LlmModel(provider='test', name='model'))
+
+    assert input_tokens == 42
+
+
+@pytest.mark.parametrize(
+    ('model', 'message'),
+    [
+        (LlmModel(provider='missing', name='model'), 'client missing does not exist'),
+        (LlmModel(provider='test', name='unsupported'), 'model unsupported not supported in client test'),
+    ],
+)
+def test_count_input_tokens_validates_model(model: LlmModel, message: str):
+    llm.clients['test'] = MockClient()
+
+    with pytest.raises(ValueError, match=message):
+        llm.count_input_tokens([Message(role=Role.USER, content='Prompt')], model)
 
 
 def test_generate_chapter_error(template_environment: Environment):

@@ -33,6 +33,24 @@ class AnthropicClient(LlmClient):
         ]
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        system_message, client_messages = self.__create_input(messages)
+        with self.__client.messages.stream(
+            max_tokens=5000, system=system_message, messages=client_messages, model=model
+        ) as stream:
+            for text in stream.text_stream:
+                yield text
+
+    def count_input_tokens(self, messages: list[Message], model: str) -> int:
+        system_message, client_messages = self.__create_input(messages)
+        response = self.__client.messages.count_tokens(
+            system=system_message,
+            messages=client_messages,
+            model=model,
+        )
+        return response.input_tokens
+
+    @staticmethod
+    def __create_input(messages: list[Message]):
         try:
             system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
         except StopIteration:
@@ -40,12 +58,7 @@ class AnthropicClient(LlmClient):
         client_messages: list[dict[str, str]] = [
             {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
         ]
-
-        with self.__client.messages.stream(
-            max_tokens=5000, system=system_message, messages=client_messages, model=model
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
+        return system_message, client_messages
 
     def close(self):
         self.__client.close()

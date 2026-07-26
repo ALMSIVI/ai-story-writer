@@ -2,7 +2,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from uuid import uuid4
-from ai_story_writer.lib.llm import create_messages, generate_chapter
+from ai_story_writer.lib.llm import count_input_tokens, create_messages, generate_chapter
 from ai_story_writer.setup import teardown, setup
 from ai_story_writer.types import (
     Chapter,
@@ -58,6 +58,11 @@ def generate(args: Namespace):
             print(messages[0].content)
         else:
             print('\n\n'.join(f'[{message.role.value}]\n{message.content}' for message in messages))
+
+        if args.model is not None:
+            input_tokens = count_input_tokens(messages, LlmModel.parse(args.model))
+            if input_tokens is not None:
+                print(f'Input tokens: {input_tokens}')
         return
 
     model = LlmModel.parse(args.model)
@@ -96,11 +101,15 @@ generate_parser.add_argument('-f', '--file', help='text file to store the story'
 generate_parser.add_argument(
     '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
 )
-generate_parser.add_argument('-m', '--model', help='Model used to generate (required unless --dry-run is used)')
+generate_parser.add_argument(
+    '-m',
+    '--model',
+    help='Model used to generate, or to count input tokens in a dry run (required unless --dry-run is used)',
+)
 generate_parser.add_argument('-t', '--template', default='default', help='Template for prompt')
 generate_parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
 generate_parser.add_argument(
-    '--dry-run', action='store_true', help='Print the full prompt without contacting the LLM provider'
+    '--dry-run', action='store_true', help='Print the full prompt and, when --model is provided, its input token count'
 )
 generate_parser.set_defaults(func=generate)
 
@@ -110,7 +119,7 @@ def start():
     if args.command == 'generate' and not args.dry_run and args.model is None:
         parser.error('the following arguments are required: -m/--model')
 
-    requires_setup = not args.dry_run
+    requires_setup = not args.dry_run or args.model is not None
     try:
         if requires_setup:
             setup()

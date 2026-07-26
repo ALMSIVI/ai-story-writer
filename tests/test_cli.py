@@ -60,10 +60,11 @@ def test_generate_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: Capture
         'create_messages',
         return_value=[Message(role=Role.USER, content='Rendered prompt')],
     )
+    count_input_tokens = mocker.patch.object(cli, 'count_input_tokens', return_value=123)
 
     cli.generate(_args(story_file, dry_run=True))
 
-    assert capsys.readouterr().out == 'Rendered prompt\n'
+    assert capsys.readouterr().out == 'Rendered prompt\nInput tokens: 123\n'
     assert story_file.read_text() == original_txt
     assert story_file.with_suffix('.md').read_text() == original_md
     generated_story, chapter_index, template, include_full_convo = create_messages.call_args.args
@@ -72,6 +73,10 @@ def test_generate_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: Capture
     assert chapter_index == 1
     assert template == 'prompt'
     assert include_full_convo is False
+    count_input_tokens.assert_called_once_with(
+        [Message(role=Role.USER, content='Rendered prompt')],
+        LlmModel(provider='test', name='model'),
+    )
 
 
 def test_generate_dry_run_inlcude_full_convo(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
@@ -85,9 +90,26 @@ def test_generate_dry_run_inlcude_full_convo(tmp_path: Path, mocker: MockerFixtu
         ],
     )
 
-    cli.generate(_args(story_file, dry_run=True, convo=True))
+    cli.generate(_args(story_file, dry_run=True, convo=True, model=None))
 
     assert capsys.readouterr().out == '[system]\nSystem\n\n[user]\nOutline\n'
+
+
+def test_generate_dry_run_no_token_count(
+    tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]
+):
+    story_file = _write_story(tmp_path, Story(title='Story', chapters=[Chapter(outline='Outline')]))
+    mocker.patch.object(
+        cli,
+        'create_messages',
+        return_value=[Message(role=Role.USER, content='Rendered prompt')],
+    )
+    count_input_tokens = mocker.patch.object(cli, 'count_input_tokens', return_value=None)
+
+    cli.generate(_args(story_file, dry_run=True, model='Ollama.model'))
+
+    assert capsys.readouterr().out == 'Rendered prompt\n'
+    count_input_tokens.assert_called_once()
 
 
 def test_generate_write(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
@@ -171,21 +193,32 @@ def test_generate_missing_chapter(tmp_path: Path, chapter_id: str | None, story:
         cli.generate(_args(story_file, id=chapter_id, dry_run=True))
 
 
-def test_start_dry_run(mocker: MockerFixture):
+def test_start_dry_run_without_model(mocker: MockerFixture):
     run = mocker.Mock()
-    mocker.patch.object(
-        cli.parser,
-        'parse_args',
-        return_value=Namespace(command='generate', dry_run=True, model=None, func=run),
-    )
+    args = Namespace(command='generate', dry_run=True, model=None, func=run)
+    mocker.patch.object(cli.parser, 'parse_args', return_value=args)
     setup = mocker.patch.object(cli, 'setup')
     teardown = mocker.patch.object(cli, 'teardown')
 
     cli.start()
 
-    run.assert_called_once()
+    run.assert_called_once_with(args)
     setup.assert_not_called()
     teardown.assert_not_called()
+
+
+def test_start_dry_run_with_model(mocker: MockerFixture):
+    run = mocker.Mock()
+    args = Namespace(command='generate', dry_run=True, model='OpenAI.model', func=run)
+    mocker.patch.object(cli.parser, 'parse_args', return_value=args)
+    setup = mocker.patch.object(cli, 'setup')
+    teardown = mocker.patch.object(cli, 'teardown')
+
+    cli.start()
+
+    setup.assert_called_once_with()
+    run.assert_called_once_with(args)
+    teardown.assert_called_once_with()
 
 
 def test_start_generation_error(mocker: MockerFixture):

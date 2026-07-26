@@ -44,5 +44,8 @@ class OllamaClient(LlmClient):
         for chunk in self.__client.chat(messages=client_messages, model=model, stream=True):
             yield chunk['message']['content']
 
+    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+        return None # Ollama doesn't have an API to count input tokens
+
     def close(self):
         pass  # Ollama client doesn't have a close() function

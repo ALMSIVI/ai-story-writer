@@ -28,6 +28,9 @@ class MockClient(LlmClient):
     def close(self) -> None:
         self.closed = True
 
+    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+        return 42
+
 
 @pytest.fixture(autouse=True)
 def isolate_clients():

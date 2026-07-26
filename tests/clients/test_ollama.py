@@ -92,3 +92,12 @@ def test_generate(mocker: MockerFixture):
         model='model',
         stream=True,
     )
+
+
+def test_count_input_tokens(mocker: MockerFixture):
+    mocker.patch('ai_story_writer.clients.ollama.Client')
+    client = OllamaClient(supported_models={'model'})
+
+    input_tokens = client.count_input_tokens([Message(role=Role.USER, content='Outline')], 'model')
+
+    assert input_tokens is None

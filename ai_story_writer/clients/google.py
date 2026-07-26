@@ -26,8 +26,27 @@ class GoogleClient(LlmClient):
         ]
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        config, contents = self.__create_input(messages, types.GenerateContentConfig)
+        for chunk in self.__client.models.generate_content_stream(contents=contents, model=model, config=config):
+            if chunk.prompt_feedback:
+                raise RuntimeError(f'Message blocked: {chunk.prompt_feedback.block_reason}')
+
+            if chunk.text is None:
+                for candidate in chunk.candidates:
+                    if candidate.finish_reason:
+                        raise RuntimeError(f'Message blocked: {candidate.finish_reason}')
+
+            yield chunk.text
+
+    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+        config, contents = self.__create_input(messages, types.CountTokensConfig)
+        response = self.__client.models.count_tokens(contents=contents, model=model, config=config)
+        return response.total_tokens
+
+    @staticmethod
+    def __create_input(messages: list[Message], config_type):
         try:
-            config = types.GenerateContentConfig(
+            config = config_type(
                 system_instruction=next(message.content for message in messages if message.role == Role.SYSTEM)
             )
         except StopIteration:
@@ -41,17 +60,7 @@ class GoogleClient(LlmClient):
             for message in messages
             if message.role != Role.SYSTEM
         ]
-
-        for chunk in self.__client.models.generate_content_stream(contents=contents, model=model, config=config):
-            if chunk.prompt_feedback:
-                raise RuntimeError(f'Message blocked: {chunk.prompt_feedback.block_reason}')
-
-            if chunk.text is None:
-                for candidate in chunk.candidates:
-                    if candidate.finish_reason:
-                        raise RuntimeError(f'Message blocked: {candidate.finish_reason}')
-
-            yield chunk.text
+        return config, contents
 
     def close(self):
         self.__client.close()

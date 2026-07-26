@@ -84,6 +84,26 @@ def test_generate_with_no_system_message(mocker: MockerFixture):
     assert sdk_client.models.generate_content_stream.call_args.kwargs['config'] is None
 
 
+def test_count_input_tokens(mocker: MockerFixture):
+    sdk_client = mocker.Mock()
+    sdk_client.models.count_tokens.return_value = SimpleNamespace(total_tokens=42)
+    mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
+    client = GoogleClient(api_key='secret', supported_models={'model'})
+    messages = [
+        Message(role=Role.SYSTEM, content='System'),
+        Message(role=Role.USER, content='Outline'),
+    ]
+
+    input_tokens = client.count_input_tokens(messages, 'model')
+
+    assert input_tokens == 42
+    call = sdk_client.models.count_tokens.call_args
+    assert call.kwargs['model'] == 'model'
+    assert call.kwargs['config'].system_instruction == 'System'
+    assert call.kwargs['contents'][0].role == 'user'
+    assert call.kwargs['contents'][0].parts[0].text == 'Outline'
+
+
 def test_generate_raises_for_prompt_feedback(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.generate_content_stream.return_value = [

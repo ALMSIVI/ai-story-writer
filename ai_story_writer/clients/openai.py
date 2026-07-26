@@ -37,6 +37,23 @@ class OpenAIClient(LlmClient):
         ]
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+        system_message, client_messages = self.__create_input(messages)
+        with self.__client.responses.stream(instructions=system_message, input=client_messages, model=model) as stream:
+            for event in stream:
+                if event.type == 'response.output_text.delta':
+                    yield event.delta
+
+    def count_input_tokens(self, messages: list[Message], model: str) -> int:
+        system_message, client_messages = self.__create_input(messages)
+        response = self.__client.responses.input_tokens.count(
+            instructions=system_message,
+            input=client_messages,
+            model=model,
+        )
+        return response.input_tokens
+
+    @staticmethod
+    def __create_input(messages: list[Message]):
         try:
             system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
         except StopIteration:
@@ -45,10 +62,7 @@ class OpenAIClient(LlmClient):
         client_messages: list[dict[str, str]] = [
             {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
         ]
-        with self.__client.responses.stream(instructions=system_message, input=client_messages, model=model) as stream:
-            for event in stream:
-                if event.type == 'response.output_text.delta':
-                    yield event.delta
+        return system_message, client_messages
 
     def close(self):
         self.__client.close()

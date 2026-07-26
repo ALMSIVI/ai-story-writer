@@ -16,5 +16,9 @@ class LlmClient(ABC):
         pass
 
     @abstractmethod
+    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+        pass
+
+    @abstractmethod
     def close(self):
         pass

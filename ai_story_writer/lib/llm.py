@@ -149,6 +149,17 @@ def create_messages(
     return [Message(role=Role.USER, content=prompt)]
 
 
+def count_input_tokens(messages: list[Message], model: LlmModel) -> int | None:
+    if model.provider not in clients:
+        raise ValueError(f'client {model.provider} does not exist')
+
+    client = clients[model.provider]
+    if model.name not in client.supported_models:
+        raise ValueError(f'model {model.name} not supported in client {model.provider}')
+
+    return client.count_input_tokens(messages, model.name)
+
+
 def generate_chapter(
     story: Story,
     chapter_index: int,

@@ -92,6 +92,26 @@ def test_generate_with_no_system_message(mocker: MockerFixture):
     assert sdk_client.messages.stream.call_args.kwargs['system'] is omit
 
 
+def test_count_input_tokens(mocker: MockerFixture):
+    sdk_client = mocker.Mock()
+    sdk_client.messages.count_tokens.return_value = SimpleNamespace(input_tokens=42)
+    mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
+    client = AnthropicClient(api_key='secret', supported_models={'model'})
+    messages = [
+        Message(role=Role.SYSTEM, content='System'),
+        Message(role=Role.USER, content='Outline'),
+    ]
+
+    input_tokens = client.count_input_tokens(messages, 'model')
+
+    assert input_tokens == 42
+    sdk_client.messages.count_tokens.assert_called_once_with(
+        system='System',
+        messages=[{'role': Role.USER, 'content': 'Outline'}],
+        model='model',
+    )
+
+
 def test_close(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
