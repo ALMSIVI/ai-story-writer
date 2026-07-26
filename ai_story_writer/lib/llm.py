@@ -62,7 +62,7 @@ def _create_prompt(
     next_outline: str | None,
 ) -> str:
     template_name = f'{template}.jinja'
-    template = jinja_env.get_template(template_name)
+    jinja_template = jinja_env.get_template(template_name)
 
     if previous_chapters is None:
         previous_chapters = []
@@ -77,7 +77,7 @@ def _create_prompt(
     if next_outline is None:
         next_outline = ''
 
-    return template.render(
+    return jinja_template.render(
         title=story.title,
         style=story.style,
         lore=lore,
@@ -96,8 +96,8 @@ def _create_history(
     previous_chapters: list[Chapter] | None,
 ) -> list[Message]:
     template_name = f'{template}.jinja'
-    template = jinja_env.get_template(template_name)
-    system_message = template.render(
+    jinja_template = jinja_env.get_template(template_name)
+    system_message = jinja_template.render(
         title=story.title,
         style=story.style,
         lore=lore,
