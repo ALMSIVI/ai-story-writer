@@ -34,42 +34,24 @@ def generate(args: Namespace):
     if story.id is None:
         story.id = str(uuid4())
 
-    all_chapters = story.chapters
-
     if id is None:
         # Generate first chapter without id
         try:
-            index = next(i for i, c in enumerate(all_chapters) if c.id is None)
+            index = next(i for i, c in enumerate(story.chapters) if c.id is None)
         except StopIteration:
             raise KeyError('Cannot find chapter without id')
     else:
         # Regenerate chapter with id
         try:
-            index = next(i for i, c in enumerate(all_chapters) if c.id == id)
+            index = next(i for i, c in enumerate(story.chapters) if c.id == id)
         except StopIteration:
             raise KeyError(f'Cannot find chapter with id {id}')
-
-    previous_chapters = all_chapters[:index]
-    current_chapter = all_chapters[index]
-    lore = current_chapter.lore
-    if lore is None:
-        for chapter in reversed(previous_chapters):
-            if chapter.lore is not None:
-                lore = chapter.lore
-                break
-
-    next_outline = None
-    if index < len(all_chapters) - 1:
-        next_outline = all_chapters[index + 1].outline
 
     if args.dry_run:
         messages = create_messages(
             story,
+            index,
             args.template,
-            lore,
-            current_chapter.outline,
-            previous_chapters,
-            next_outline,
             args.convo,
         )
         if len(messages) == 1:
@@ -81,19 +63,17 @@ def generate(args: Namespace):
     model = LlmModel.parse(args.model)
     for event in generate_chapter(
         story,
+        index,
         model,
         args.template,
-        lore,
-        current_chapter.outline,
-        previous_chapters,
-        next_outline,
         args.convo,
     ):
         if isinstance(event, GenerationInProgressEvent):
             print(event.chunk, end='', flush=True)
         elif isinstance(event, GenerationCompletedEvent):
-            chapter_id = current_chapter.id or generate_id(all_chapters)
-            all_chapters[index] = Chapter(
+            current_chapter = story.chapters[index]
+            chapter_id = current_chapter.id or generate_id(story.chapters)
+            story.chapters[index] = Chapter(
                 id=chapter_id,
                 lore=current_chapter.lore,
                 outline=current_chapter.outline,

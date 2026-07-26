@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Iterator
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient
 from ai_story_writer.types import (
-    Chapter,
     LlmModel,
     Message,
     ModelConfig,
@@ -53,19 +52,28 @@ def cleanup_clients():
     clients.clear()
 
 
+def _validate_chapter_index(story: Story, chapter_index: int):
+    if chapter_index < 0 or chapter_index >= len(story.chapters):
+        raise IndexError(f'chapter index {chapter_index} out of range')
+
+
+def _get_lore(story: Story, chapter_index: int) -> str | None:
+    for chapter in reversed(story.chapters[: chapter_index + 1]):
+        if chapter.lore is not None:
+            return chapter.lore
+    return None
+
+
 def _create_prompt(
     story: Story,
+    chapter_index: int,
     template: str,
-    lore: str,
-    current_outline: str,
-    previous_chapters: list[Chapter] | None,
-    next_outline: str | None,
 ) -> str:
     template_name = f'{template}.jinja'
     jinja_template = jinja_env.get_template(template_name)
 
-    if previous_chapters is None:
-        previous_chapters = []
+    previous_chapters = story.chapters[:chapter_index]
+    current_chapter = story.chapters[chapter_index]
 
     if story.chapter_count is not None and len(previous_chapters) > story.chapter_count:
         summary_length = len(previous_chapters) - story.chapter_count
@@ -74,84 +82,72 @@ def _create_prompt(
     else:
         summary = None
         previous_contents = '\n\n'.join([chapter.full_content for chapter in previous_chapters])
-    if next_outline is None:
-        next_outline = ''
+
+    next_outline = ''
+    if chapter_index < len(story.chapters) - 1:
+        next_outline = story.chapters[chapter_index + 1].outline
 
     return jinja_template.render(
         title=story.title,
         style=story.style,
-        lore=lore,
+        lore=_get_lore(story, chapter_index),
         summary=summary,
         previous=previous_contents,
-        current=current_outline,
+        current=current_chapter.outline,
         next=next_outline,
     )
 
 
 def _create_history(
     story: Story,
+    chapter_index: int,
     template: str,
-    lore: str,
-    current_outline: str,
-    previous_chapters: list[Chapter] | None,
 ) -> list[Message]:
     template_name = f'{template}.jinja'
     jinja_template = jinja_env.get_template(template_name)
     system_message = jinja_template.render(
         title=story.title,
         style=story.style,
-        lore=lore,
+        lore=_get_lore(story, chapter_index),
     )
 
     messages = [Message(role=Role.SYSTEM, content=system_message)]
 
-    if previous_chapters is None:
-        previous_chapters = []
-
-    for chapter in previous_chapters:
-        if chapter.content is None:
-            raise ValueError(f'chapter {chapter.id or chapter.outline!r} content is missing')
+    for chapter in story.chapters[:chapter_index]:
         messages.append(Message(role=Role.USER, content=chapter.outline))
-        messages.append(Message(role=Role.ASSISTANT, content=chapter.content))
+        messages.append(Message(role=Role.ASSISTANT, content=chapter.full_content))
 
-    messages.append(Message(role=Role.USER, content=current_outline))
+    messages.append(Message(role=Role.USER, content=story.chapters[chapter_index].outline))
     return messages
 
 
 def create_messages(
     story: Story,
+    chapter_index: int,
     template: str,
-    lore: str,
-    current_outline: str,
-    previous_chapters: list[Chapter] | None,
-    next_outline: str | None,
     include_full_convo: bool = False,
 ) -> list[Message]:
     """Build the complete LLM input without contacting a provider."""
-    if include_full_convo:
-        return _create_history(story, template, lore, current_outline, previous_chapters)
+    _validate_chapter_index(story, chapter_index)
 
-    prompt = _create_prompt(story, template, lore, current_outline, previous_chapters, next_outline)
+    if include_full_convo:
+        return _create_history(story, chapter_index, template)
+
+    prompt = _create_prompt(story, chapter_index, template)
     return [Message(role=Role.USER, content=prompt)]
 
 
 def generate_chapter(
     story: Story,
+    chapter_index: int,
     model: LlmModel,
     template: str,
-    lore: str,
-    current_outline: str,
-    previous_chapters: list[Chapter] | None,
-    next_outline: str | None,
     include_full_convo: bool = False,
 ) -> Iterator[GenerationEvent]:
     messages = create_messages(
         story,
+        chapter_index,
         template,
-        lore,
-        current_outline,
-        previous_chapters,
-        next_outline,
         include_full_convo,
     )
     if model.provider not in clients:
