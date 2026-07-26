@@ -1,9 +1,11 @@
 from uuid import UUID
-from ai_story_writer.types import Story, Chapter
 
-def __parse_md(md_str: str) -> list[str]:
-    sections = []
-    current_section = []
+from ai_story_writer.types import Chapter, Story
+
+
+def parse_markdown(md_str: str) -> list[str]:
+    sections: list[str] = []
+    current_section: list[str] = []
 
     for line in md_str.splitlines():
         if line.startswith('# '):
@@ -19,7 +21,7 @@ def __parse_md(md_str: str) -> list[str]:
 
 
 def parse_files(txt_str: str, md_str: str) -> Story:
-    contents = __parse_md(md_str)
+    contents = parse_markdown(md_str)
     txt_parts = txt_str.split('\n\n---\n\n')
     story_info = txt_parts[0].split('\n\n')
 
@@ -114,7 +116,6 @@ def dump_story(story: Story) -> tuple[str, str]:
         txt_parts.append(str(story.chapter_count))
     txt_parts.append('---')
 
-    md_parts: list[str] = []
     for chapter in story.chapters:
         if chapter.id is not None:
             txt_parts.append(chapter.id)
@@ -124,12 +125,13 @@ def dump_story(story: Story) -> tuple[str, str]:
         txt_parts.append(chapter.outline)
         txt_parts.append('---')
 
-        if chapter.content is not None:
-            md_parts.append(chapter.full_content)
-
     # Remove final ---
     txt_parts = txt_parts[:-1]
 
     txt_str = '\n\n'.join(txt_parts)
-    md_str = '\n\n'.join(md_parts)
+    md_str = dump_markdown(story)
     return txt_str, md_str
+
+
+def dump_markdown(story: Story) -> str:
+    return '\n\n'.join(chapter.full_content for chapter in story.chapters if chapter.content is not None)
