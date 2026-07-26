@@ -28,7 +28,7 @@ class OllamaClient(LlmClient):
     def list_models(self) -> list[LlmModel]:
         models = self.__client.list()
         model_names = [model.model for model in models.models if model.model is not None]
-        if len(model_names) == 0:
+        if len(self.supported_models) == 0:
             self.supported_models = set(model_names)
 
         return [
@@ -38,7 +38,9 @@ class OllamaClient(LlmClient):
         ]
 
     def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        client_messages: list[dict[str, str]] = [{'role': message.role, 'content': message.content} for message in messages]
+        client_messages: list[dict[str, str]] = [
+            {'role': message.role, 'content': message.content} for message in messages
+        ]
         for chunk in self.__client.chat(messages=client_messages, model=model, stream=True):
             yield chunk['message']['content']
 

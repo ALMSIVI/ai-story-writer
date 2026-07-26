@@ -4,4 +4,4 @@ from .google import GoogleClient
 from .openai import OpenAIClient
 from .ollama import OllamaClient
 
-__all__ = [LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient]
+__all__ = ['LlmClient', 'AnthropicClient', 'GoogleClient', 'OpenAIClient', 'OllamaClient']
