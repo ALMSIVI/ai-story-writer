@@ -23,9 +23,15 @@ def add_client(provider: str, model_config: ModelConfig):
     supported_models = set(model_config.supported_models if model_config.supported_models is not None else [])
     match provider:
         case 'Anthropic':
-            clients[provider] = AnthropicClient(model_config.api_key, supported_models)
+            clients[provider] = AnthropicClient(
+                api_key=model_config.api_key,
+                supported_models=supported_models,
+            )
         case 'Google':
-            clients[provider] = GoogleClient(model_config.api_key, supported_models)
+            clients[provider] = GoogleClient(
+                api_key=model_config.api_key,
+                supported_models=supported_models,
+            )
         case 'Ollama':
             clients[provider] = OllamaClient(
                 api_key=model_config.api_key,
@@ -38,11 +44,17 @@ def add_client(provider: str, model_config: ModelConfig):
             match sdk:
                 case 'Anthropic':
                     clients[provider] = AnthropicClient(
-                        model_config.api_key, supported_models, provider, model_config.base_url
+                        api_key=model_config.api_key,
+                        supported_models=supported_models,
+                        provider=provider,
+                        base_url=model_config.base_url,
                     )
                 case _:
                     clients[provider] = OpenAIClient(
-                        model_config.api_key, supported_models, provider, model_config.base_url
+                        api_key=model_config.api_key,
+                        supported_models=supported_models,
+                        provider=provider,
+                        base_url=model_config.base_url,
                     )
 
 

@@ -30,7 +30,7 @@ def test_list_models_with_supported_models(mocker: MockerFixture):
         SimpleNamespace(id='unsupported'),
     ]
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
-    client = AnthropicClient('secret', {'supported'}, provider='Compatible')
+    client = AnthropicClient(api_key='secret', supported_models={'supported'}, provider='Compatible')
 
     models = client.list_models()
 
@@ -42,7 +42,7 @@ def test_list_models_with_empty_supported_models(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.list.return_value = [SimpleNamespace(id='one'), SimpleNamespace(id='two')]
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
-    client = AnthropicClient('secret', set())
+    client = AnthropicClient(api_key='secret', supported_models=set())
 
     models = client.list_models()
 
@@ -60,7 +60,7 @@ def test_generate(mocker: MockerFixture):
     stream_context.__enter__.return_value = stream
     sdk_client.messages.stream.return_value = stream_context
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
-    client = AnthropicClient('secret', {'model'})
+    client = AnthropicClient(api_key='secret', supported_models={'model'})
     messages = [
         Message(role=Role.SYSTEM, content='System'),
         Message(role=Role.USER, content='Outline'),
@@ -85,7 +85,7 @@ def test_generate_with_no_system_message(mocker: MockerFixture):
     stream_context.__enter__.return_value = SimpleNamespace(text_stream=[])
     sdk_client.messages.stream.return_value = stream_context
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
-    client = AnthropicClient('secret', {'model'})
+    client = AnthropicClient(api_key='secret', supported_models={'model'})
 
     list(client.generate([Message(role=Role.USER, content='Outline')], 'model'))
 
@@ -96,6 +96,6 @@ def test_close(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
 
-    AnthropicClient('secret', {'model'}).close()
+    AnthropicClient(api_key='secret', supported_models={'model'}).close()
 
     sdk_client.close.assert_called_once_with()

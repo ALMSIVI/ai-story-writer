@@ -7,8 +7,20 @@ from ai_story_writer.types import Message, LlmModel, Role
 class OpenAIClient(LlmClient):
     __client: OpenAI
 
-    def __init__(self, api_key: str, supported_models: set[str], provider: str = 'OpenAI', base_url: str | None = None):
-        self.__client = OpenAI(api_key=api_key, base_url=base_url)
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        supported_models: set[str],
+        provider: str = 'OpenAI',
+        base_url: str | None = None,
+    ):
+        client_api_key = api_key
+        if client_api_key is None and base_url is not None:
+            # The OpenAI SDK requires a value even when the compatible local service does not use authentication.
+            client_api_key = 'not-needed'
+
+        self.__client = OpenAI(api_key=client_api_key, base_url=base_url)
         self.provider = provider
         self.supported_models = supported_models
 

@@ -9,7 +9,7 @@ class GoogleClient(LlmClient):
     provider = 'Google'
     __client: genai.Client
 
-    def __init__(self, api_key: str, supported_models: set[str]):
+    def __init__(self, *, api_key: str, supported_models: set[str]):
         self.__client = genai.Client(api_key=api_key)
         self.supported_models = supported_models
 

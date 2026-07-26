@@ -23,6 +23,19 @@ def test_init(mocker: MockerFixture):
     assert client.supported_models == {'model'}
 
 
+def test_init_without_api_key(mocker: MockerFixture):
+    sdk_client = mocker.Mock()
+    openai = mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
+
+    OpenAIClient(
+        supported_models={'model'},
+        provider='Local',
+        base_url='http://localhost:1234/v1',
+    )
+
+    openai.assert_called_once_with(api_key='not-needed', base_url='http://localhost:1234/v1')
+
+
 def test_list_models_with_supported_models(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.list.return_value = [
@@ -30,7 +43,7 @@ def test_list_models_with_supported_models(mocker: MockerFixture):
         SimpleNamespace(id='unsupported'),
     ]
     mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
-    client = OpenAIClient('secret', {'supported'}, provider='Compatible')
+    client = OpenAIClient(api_key='secret', supported_models={'supported'}, provider='Compatible')
 
     models = client.list_models()
 
@@ -42,7 +55,7 @@ def test_list_models_with_empty_supported_models(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.list.return_value = [SimpleNamespace(id='one'), SimpleNamespace(id='two')]
     mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
-    client = OpenAIClient('secret', set())
+    client = OpenAIClient(api_key='secret', supported_models=set())
 
     models = client.list_models()
 
@@ -63,7 +76,7 @@ def test_generate(mocker: MockerFixture):
     ]
     sdk_client.responses.stream.return_value = stream_context
     mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
-    client = OpenAIClient('secret', {'model'})
+    client = OpenAIClient(api_key='secret', supported_models={'model'})
     messages = [
         Message(role=Role.SYSTEM, content='System'),
         Message(role=Role.USER, content='Outline'),
@@ -87,7 +100,7 @@ def test_generate_with_no_system_message(mocker: MockerFixture):
     stream_context.__enter__.return_value = []
     sdk_client.responses.stream.return_value = stream_context
     mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
-    client = OpenAIClient('secret', {'model'})
+    client = OpenAIClient(api_key='secret', supported_models={'model'})
 
     list(client.generate([Message(role=Role.USER, content='Question')], 'model'))
 
@@ -98,6 +111,6 @@ def test_close(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
 
-    OpenAIClient('secret', {'model'}).close()
+    OpenAIClient(api_key='secret', supported_models={'model'}).close()
 
     sdk_client.close.assert_called_once_with()

@@ -26,7 +26,7 @@ def test_list_models_with_supported_models(mocker: MockerFixture):
         SimpleNamespace(name=None),
     ]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', {'supported'})
+    client = GoogleClient(api_key='secret', supported_models={'supported'})
 
     models = client.list_models()
 
@@ -38,7 +38,7 @@ def test_list_models_with_empty_supported_models(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.list.return_value = [SimpleNamespace(name='one'), SimpleNamespace(name='two')]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', set())
+    client = GoogleClient(api_key='secret', supported_models=set())
 
     models = client.list_models()
 
@@ -56,7 +56,7 @@ def test_generate(mocker: MockerFixture):
         SimpleNamespace(prompt_feedback=None, text=' second', candidates=[]),
     ]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', {'model'})
+    client = GoogleClient(api_key='secret', supported_models={'model'})
     messages = [
         Message(role=Role.SYSTEM, content='System'),
         Message(role=Role.USER, content='Outline'),
@@ -77,7 +77,7 @@ def test_generate_with_no_system_message(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     sdk_client.models.generate_content_stream.return_value = []
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', {'model'})
+    client = GoogleClient(api_key='secret', supported_models={'model'})
 
     list(client.generate([Message(role=Role.USER, content='Outline')], 'model'))
 
@@ -94,7 +94,7 @@ def test_generate_raises_for_prompt_feedback(mocker: MockerFixture):
         )
     ]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', {'model'})
+    client = GoogleClient(api_key='secret', supported_models={'model'})
 
     with pytest.raises(RuntimeError, match='Message blocked: SAFETY'):
         list(client.generate([Message(role=Role.USER, content='Question')], 'model'))
@@ -110,7 +110,7 @@ def test_generate_raises_for_candidate_finish_reason(mocker: MockerFixture):
         )
     ]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient('secret', {'model'})
+    client = GoogleClient(api_key='secret', supported_models={'model'})
 
     with pytest.raises(RuntimeError, match='Message blocked: RECITATION'):
         list(client.generate([Message(role=Role.USER, content='Question')], 'model'))
@@ -120,6 +120,6 @@ def test_close(mocker: MockerFixture):
     sdk_client = mocker.Mock()
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
 
-    GoogleClient('secret', {'model'}).close()
+    GoogleClient(api_key='secret', supported_models={'model'}).close()
 
     sdk_client.close.assert_called_once_with()
