@@ -1,6 +1,6 @@
 import pytest
 
-from ai_story_writer.types import Chapter, Story
+from ai_story_writer.types import Chapter, GenerationConfig, Story
 from ai_story_writer.utils.yaml import StoryFileError, YamlStoryDocument
 
 
@@ -10,7 +10,11 @@ title: Story
 style: |-
   Lyrical
   Restrained
-chapter_count: 2
+config:
+  model: OpenAI.gpt-5
+  template: default
+  includeFullConversation: true
+  fullChapterCount: 2
 chapters:
   - id: first
     lore: |-
@@ -26,12 +30,12 @@ chapters:
 """
     md_str = '# First\n\nBody\n\n## Section\n\nMore'
 
-    story = YamlStoryDocument.load(yaml_str, md_str).story
+    document = YamlStoryDocument.load(yaml_str, md_str)
+    story = document.story
 
     assert story == Story(
         title='Story',
         style='Lyrical\nRestrained',
-        chapter_count=2,
         chapters=[
             Chapter(
                 id='first',
@@ -41,6 +45,12 @@ chapters:
             ),
             Chapter(outline='Text containing ---'),
         ],
+    )
+    assert document.generation_config == GenerationConfig(
+        model='OpenAI.gpt-5',
+        template='default',
+        includeFullConversation=True,
+        fullChapterCount=2,
     )
 
 
@@ -91,7 +101,13 @@ def test_from_story():
             title='Story',
             style='One line',
             chapters=[Chapter(lore='Lore\nSecond line', outline='Outline\n\nSecond beat')],
-        )
+        ),
+        GenerationConfig(
+            model='OpenAI.gpt-5',
+            template='default',
+            includeFullConversation=False,
+            fullChapterCount=2,
+        ),
     )
 
     assert (
@@ -100,6 +116,11 @@ def test_from_story():
 title: Story
 style: |-
   One line
+config:
+  model: OpenAI.gpt-5
+  template: default
+  includeFullConversation: false
+  fullChapterCount: 2
 chapters:
   - lore: |-
       Lore

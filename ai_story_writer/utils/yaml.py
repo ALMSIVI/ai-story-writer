@@ -7,7 +7,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
-from ai_story_writer.types import Chapter, Story
+from ai_story_writer.types import Chapter, GenerationConfig, Story
 from ai_story_writer.utils.markdown import parse_markdown
 
 
@@ -23,13 +23,13 @@ class ChapterInstructions(BaseModel):
     outline: str
 
 
-class StoryInstructions(BaseModel):
+class StoryFileInstructions(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     id: str | None = None
     title: str
     style: str | None = None
-    chapter_count: int | None = None
+    config: GenerationConfig | None = None
     chapters: list[ChapterInstructions]
 
 
@@ -48,6 +48,7 @@ def _literal(value: str) -> LiteralScalarString:
 @dataclass
 class YamlStoryDocument:
     story: Story
+    generation_config: GenerationConfig | None
     document: CommentedMap
 
     @classmethod
@@ -61,7 +62,7 @@ class YamlStoryDocument:
             raise StoryFileError('Story YAML must contain a top-level mapping')
 
         try:
-            instructions = StoryInstructions.model_validate(document)
+            instructions = StoryFileInstructions.model_validate(document)
         except ValidationError as error:
             raise StoryFileError(f'Invalid story instructions: {error}') from error
 
@@ -79,21 +80,24 @@ class YamlStoryDocument:
             id=instructions.id,
             title=instructions.title,
             style=instructions.style,
-            chapter_count=instructions.chapter_count,
             chapters=chapters,
         )
-        return cls(story=story, document=document)
+        return cls(story=story, generation_config=instructions.config, document=document)
 
     @classmethod
-    def from_story(cls, story: Story) -> 'YamlStoryDocument':
+    def from_story(
+        cls,
+        story: Story,
+        generation_config: GenerationConfig | None = None,
+    ) -> 'YamlStoryDocument':
         document = CommentedMap()
         if story.id is not None:
             document['id'] = story.id
         document['title'] = story.title
         if story.style is not None:
             document['style'] = _literal(story.style)
-        if story.chapter_count is not None:
-            document['chapter_count'] = story.chapter_count
+        if generation_config is not None:
+            document['config'] = CommentedMap(generation_config.model_dump(by_alias=True, exclude_none=True))
 
         chapters = CommentedSeq()
         for chapter in story.chapters:
@@ -105,7 +109,7 @@ class YamlStoryDocument:
             chapter_document['outline'] = _literal(chapter.outline)
             chapters.append(chapter_document)
         document['chapters'] = chapters
-        return cls(story=story, document=document)
+        return cls(story=story, generation_config=generation_config, document=document)
 
     def set_story_id(self, story_id: str) -> None:
         self.story.id = story_id

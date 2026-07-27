@@ -1,6 +1,13 @@
 from pydantic import BaseModel, Field
 
 
+class GenerationConfig(BaseModel):
+    model: str | None = None
+    template: str | None = None
+    include_full_conversation: bool | None = Field(default=None, alias='includeFullConversation')
+    full_chapter_count: int | None = Field(default=None, ge=0, alias='fullChapterCount')
+
+
 class ModelConfig(BaseModel):
     api_key: str | None = Field(default=None, alias='apiKey')
     base_sdk: str = Field(default='OpenAI', alias='baseSdk')

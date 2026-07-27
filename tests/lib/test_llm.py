@@ -20,7 +20,6 @@ def test_create_messages(template_environment: Environment):
     story = Story(
         title='Story',
         style='Noir',
-        chapter_count=1,
         chapters=[
             Chapter(outline='First outline', content='# First\n\nFirst body', lore='Original lore'),
             Chapter(outline='Second outline', content='# Second\n\nSecond body', lore='Updated lore'),
@@ -29,7 +28,7 @@ def test_create_messages(template_environment: Environment):
         ],
     )
 
-    messages = llm.create_messages(story, 2, 'prompt')
+    messages = llm.create_messages(story, 2, 'prompt', full_chapter_count=1)
 
     assert messages == [
         Message(
@@ -50,7 +49,7 @@ def test_create_messages_first_chapter(template_environment: Environment):
     assert messages[0].content == ('title=Story|style=None|lore=None|summary=None|previous=|current=First|next=Second')
 
 
-def test_create_messages_include_full_convo(template_environment: Environment):
+def test_create_messages_include_full_conversation(template_environment: Environment):
     story = Story(
         title='Story',
         style='Noir',
@@ -61,7 +60,7 @@ def test_create_messages_include_full_convo(template_environment: Environment):
         ],
     )
 
-    messages = llm.create_messages(story, 2, 'convo', include_full_convo=True)
+    messages = llm.create_messages(story, 2, 'convo', include_full_conversation=True)
 
     assert messages == [
         Message(role=Role.SYSTEM, content='title=Story|style=Noir|lore=Lore'),

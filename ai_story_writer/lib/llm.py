@@ -80,6 +80,7 @@ def _create_prompt(
     story: Story,
     chapter_index: int,
     template: str,
+    full_chapter_count: int | None,
 ) -> str:
     template_name = f'{template}.jinja'
     jinja_template = jinja_env.get_template(template_name)
@@ -87,8 +88,8 @@ def _create_prompt(
     previous_chapters = story.chapters[:chapter_index]
     current_chapter = story.chapters[chapter_index]
 
-    if story.chapter_count is not None and len(previous_chapters) > story.chapter_count:
-        summary_length = len(previous_chapters) - story.chapter_count
+    if full_chapter_count is not None and len(previous_chapters) > full_chapter_count:
+        summary_length = len(previous_chapters) - full_chapter_count
         summary = '\n\n'.join([chapter.full_outline for chapter in previous_chapters[:summary_length]])
         previous_contents = '\n\n'.join([chapter.full_content for chapter in previous_chapters[summary_length:]])
     else:
@@ -137,15 +138,16 @@ def create_messages(
     story: Story,
     chapter_index: int,
     template: str,
-    include_full_convo: bool = False,
+    include_full_conversation: bool = False,
+    full_chapter_count: int | None = None,
 ) -> list[Message]:
     """Build the complete LLM input without contacting a provider."""
     _validate_chapter_index(story, chapter_index)
 
-    if include_full_convo:
+    if include_full_conversation:
         return _create_history(story, chapter_index, template)
 
-    prompt = _create_prompt(story, chapter_index, template)
+    prompt = _create_prompt(story, chapter_index, template, full_chapter_count)
     return [Message(role=Role.USER, content=prompt)]
 
 
@@ -165,13 +167,15 @@ def generate_chapter(
     chapter_index: int,
     model: LlmModel,
     template: str,
-    include_full_convo: bool = False,
+    include_full_conversation: bool = False,
+    full_chapter_count: int | None = None,
 ) -> Iterator[GenerationEvent]:
     messages = create_messages(
         story,
         chapter_index,
         template,
-        include_full_convo,
+        include_full_conversation,
+        full_chapter_count,
     )
     if model.provider not in clients:
         raise ValueError(f'client {model.provider} does not exist')

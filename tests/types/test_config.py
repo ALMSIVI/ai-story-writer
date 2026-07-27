@@ -1,7 +1,31 @@
-from ai_story_writer.types import ModelConfig
+import pytest
+from pydantic import ValidationError
+
+from ai_story_writer.types import GenerationConfig, ModelConfig
 
 
-def test_accepts_camel_case_aliases():
+def test_generation_config_accepts_camel_case_aliases():
+    config = GenerationConfig.model_validate(
+        {
+            'model': 'OpenAI.gpt-5',
+            'template': 'default',
+            'includeFullConversation': True,
+            'fullChapterCount': 2,
+        }
+    )
+
+    assert config.model == 'OpenAI.gpt-5'
+    assert config.template == 'default'
+    assert config.include_full_conversation is True
+    assert config.full_chapter_count == 2
+
+
+def test_generation_config_rejects_negative_full_chapter_count():
+    with pytest.raises(ValidationError, match='greater than or equal to 0'):
+        GenerationConfig.model_validate({'fullChapterCount': -1})
+
+
+def test_model_config_accepts_camel_case_aliases():
     config = ModelConfig.model_validate(
         {
             'apiKey': 'secret',
@@ -17,7 +41,7 @@ def test_accepts_camel_case_aliases():
     assert config.supported_models == ['one', 'two']
 
 
-def test_defaults():
+def test_model_config_defaults():
     config = ModelConfig()
 
     assert config.api_key is None

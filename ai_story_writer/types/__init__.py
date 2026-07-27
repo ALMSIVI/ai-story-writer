@@ -1,5 +1,5 @@
 from .chapter import Chapter
-from .config import ModelConfig
+from .config import GenerationConfig, ModelConfig
 from .model import LlmModel
 from .llm_client import Role, Message
 from .events import GenerationEvent, GenerationInProgressEvent, GenerationCompletedEvent, GenerationErrorEvent
@@ -8,6 +8,7 @@ from .story import Story
 
 __all__ = [
     'Chapter',
+    'GenerationConfig',
     'ModelConfig',
     'LlmModel',
     'Role',

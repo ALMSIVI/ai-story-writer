@@ -6,11 +6,12 @@ from ai_story_writer.lib.llm import count_input_tokens, create_messages, generat
 from ai_story_writer.setup import teardown, setup
 from ai_story_writer.types import (
     Chapter,
-    LlmModel,
-    GenerationInProgressEvent,
     GenerationCompletedEvent,
     GenerationErrorEvent,
+    GenerationInProgressEvent,
+    LlmModel,
 )
+from ai_story_writer.utils.config import GenerationConfigError, resolve_generation_config
 from ai_story_writer.utils.id import generate_id
 from ai_story_writer.utils.markdown import dump_markdown
 from ai_story_writer.utils.yaml import StoryFileError, YamlStoryDocument
@@ -35,6 +36,18 @@ def generate(args: Namespace):
 
     story_document = YamlStoryDocument.load(yaml_str, md_str)
     story = story_document.story
+    config = resolve_generation_config(yaml_file, story_document.generation_config, args.config)
+    if config.template is None:
+        raise CliError('No template configured')
+    if config.model is None:
+        if not args.dry_run:
+            raise CliError('No model configured')
+        model = None
+    else:
+        try:
+            model = LlmModel.parse(config.model)
+        except ValueError as error:
+            raise CliError(str(error)) from error
 
     if story.id is None:
         story_document.set_story_id(str(uuid4()))
@@ -57,48 +70,57 @@ def generate(args: Namespace):
         messages = create_messages(
             story,
             index,
-            args.template,
-            args.convo,
+            config.template,
+            include_full_conversation=config.include_full_conversation,
+            full_chapter_count=config.full_chapter_count,
         )
         if len(messages) == 1:
             print(messages[0].content)
         else:
             print('\n\n'.join(f'[{message.role.value}]\n{message.content}' for message in messages))
 
-        if args.model is not None:
-            input_tokens = count_input_tokens(messages, LlmModel.parse(args.model))
-            if input_tokens is not None:
-                print(f'Input tokens: {input_tokens}')
+        if model is not None:
+            try:
+                setup()
+                input_tokens = count_input_tokens(messages, model)
+                if input_tokens is not None:
+                    print(f'Input tokens: {input_tokens}')
+            finally:
+                teardown()
         return
 
-    model = LlmModel.parse(args.model)
-    for event in generate_chapter(
-        story,
-        index,
-        model,
-        args.template,
-        args.convo,
-    ):
-        if isinstance(event, GenerationInProgressEvent):
-            print(event.chunk, end='', flush=True)
-        elif isinstance(event, GenerationCompletedEvent):
-            current_chapter = story.chapters[index]
-            chapter_id = current_chapter.id or generate_id(story.chapters)
-            story.chapters[index] = Chapter(
-                id=chapter_id,
-                lore=current_chapter.lore,
-                outline=current_chapter.outline,
-                content=event.content,
-            )
-            story_document.set_chapter_id(index, chapter_id)
-            yaml_str = story_document.dump()
-            md_str = dump_markdown(story)
-            with yaml_file.open('wt') as f:
-                f.write(yaml_str)
-            with md_file.open('wt') as f:
-                f.write(md_str)
-        elif isinstance(event, GenerationErrorEvent):
-            print(f'Encountered error {event.message}', file=sys.stderr)
+    try:
+        setup()
+        for event in generate_chapter(
+            story,
+            index,
+            model,
+            config.template,
+            include_full_conversation=config.include_full_conversation,
+            full_chapter_count=config.full_chapter_count,
+        ):
+            if isinstance(event, GenerationInProgressEvent):
+                print(event.chunk, end='', flush=True)
+            elif isinstance(event, GenerationCompletedEvent):
+                current_chapter = story.chapters[index]
+                chapter_id = current_chapter.id or generate_id(story.chapters)
+                story.chapters[index] = Chapter(
+                    id=chapter_id,
+                    lore=current_chapter.lore,
+                    outline=current_chapter.outline,
+                    content=event.content,
+                )
+                story_document.set_chapter_id(index, chapter_id)
+                yaml_str = story_document.dump()
+                md_str = dump_markdown(story)
+                with yaml_file.open('wt') as f:
+                    f.write(yaml_str)
+                with md_file.open('wt') as f:
+                    f.write(md_str)
+            elif isinstance(event, GenerationErrorEvent):
+                print(f'Encountered error {event.message}', file=sys.stderr)
+    finally:
+        teardown()
 
 
 parser = ArgumentParser()
@@ -109,38 +131,22 @@ generate_parser.add_argument('file', help='YAML story instruction file')
 generate_parser.add_argument(
     '-i', '--id', default=None, help='ID of chapter to regenerate, leave blank to generate first chapter without ID'
 )
-generate_parser.add_argument(
-    '-m',
-    '--model',
-    help='Model used to generate, or to count input tokens in a dry run (required unless --dry-run is used)',
-)
-generate_parser.add_argument('-t', '--template', default='default', help='Template for prompt')
-generate_parser.add_argument('-c', '--convo', action='store_true', help='Include full conversation for generation')
+generate_parser.add_argument('-c', '--config', help='JSON configuration file')
 generate_parser.add_argument(
     '-d',
     '--dry-run',
     action='store_true',
-    help='Print the full prompt and, when --model is provided, its input token count',
+    help='Print the full prompt and, when a model is configured, its input token count',
 )
 generate_parser.set_defaults(func=generate)
 
 
 def start():
     args = parser.parse_args()
-    if args.command == 'generate':
-        if not args.dry_run and args.model is None:
-            parser.error('the following arguments are required: -m/--model')
-
-    requires_setup = args.command == 'generate' and (not args.dry_run or args.model is not None)
     try:
-        if requires_setup:
-            setup()
         args.func(args)
-    except (CliError, StoryFileError) as error:
+    except (CliError, GenerationConfigError, StoryFileError) as error:
         parser.error(str(error))
-    finally:
-        if requires_setup:
-            teardown()
 
 
 if __name__ == 'main':
