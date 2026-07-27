@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
+from ai_story_writer.lib.config import GenerationConfigError, resolve_generation_config
 from ai_story_writer.types import GenerationConfig
-from ai_story_writer.utils.config import GenerationConfigError, resolve_generation_config
 
 
 def test_resolve_generation_config_merges_each_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

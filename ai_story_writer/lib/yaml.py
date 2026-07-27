@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from io import StringIO
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 from ruamel.yaml import YAML
@@ -7,8 +8,8 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
+from ai_story_writer.lib.markdown import dump_markdown, parse_markdown
 from ai_story_writer.types import Chapter, GenerationConfig, Story
-from ai_story_writer.utils.markdown import parse_markdown
 
 
 class StoryFileError(ValueError):
@@ -85,6 +86,13 @@ class YamlStoryDocument:
         return cls(story=story, generation_config=instructions.config, document=document)
 
     @classmethod
+    def load_files(cls, yaml_path: Path) -> 'YamlStoryDocument':
+        yaml_str = yaml_path.read_text()
+        markdown_path = yaml_path.with_suffix('.md')
+        md_str = markdown_path.read_text() if markdown_path.exists() else ''
+        return cls.load(yaml_str, md_str)
+
+    @classmethod
     def from_story(
         cls,
         story: Story,
@@ -130,6 +138,10 @@ class YamlStoryDocument:
         stream = StringIO()
         _yaml().dump(self.document, stream)
         return stream.getvalue()
+
+    def write_files(self, yaml_path: Path) -> None:
+        yaml_path.write_text(self.dump())
+        yaml_path.with_suffix('.md').write_text(dump_markdown(self.story))
 
     def _chapter_document(self, index: int) -> CommentedMap:
         chapters = self.document['chapters']

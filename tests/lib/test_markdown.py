@@ -1,7 +1,7 @@
 import pytest
 
+from ai_story_writer.lib.markdown import dump_markdown, parse_markdown
 from ai_story_writer.types import Chapter, Story
-from ai_story_writer.utils.markdown import dump_markdown, parse_markdown
 
 
 @pytest.mark.parametrize(

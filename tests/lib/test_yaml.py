@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import pytest
 
+from ai_story_writer.lib.yaml import StoryFileError, YamlStoryDocument
 from ai_story_writer.types import Chapter, GenerationConfig, Story
-from ai_story_writer.utils.yaml import StoryFileError, YamlStoryDocument
 
 
 def test_yaml_story_round_trip():
@@ -145,3 +147,32 @@ chapters:
 def test_invalid_yaml_story(yaml_str: str, message: str):
     with pytest.raises(StoryFileError, match=message):
         YamlStoryDocument.load(yaml_str)
+
+
+def test_load_files_reads_optional_markdown(tmp_path: Path):
+    yaml_file = tmp_path / 'story.yaml'
+    yaml_file.write_text('title: Story\nchapters:\n  - outline: First\n  - outline: Second\n')
+
+    without_markdown = YamlStoryDocument.load_files(yaml_file)
+
+    assert [chapter.content for chapter in without_markdown.story.chapters] == [None, None]
+
+    yaml_file.with_suffix('.md').write_text('# First\n\nBody')
+
+    with_markdown = YamlStoryDocument.load_files(yaml_file)
+
+    assert with_markdown.story.chapters[0].full_content == '# First\n\nBody'
+    assert with_markdown.story.chapters[1].content is None
+
+
+def test_write_files_preserves_yaml_and_writes_markdown(tmp_path: Path):
+    yaml_file = tmp_path / 'story.yaml'
+    yaml_file.write_text('# User comment\ntitle: Story\nchapters:\n  - outline: |-\n      First beat\n')
+    document = YamlStoryDocument.load_files(yaml_file)
+    document.story.chapters[0].content = '# Chapter\n\nBody'
+
+    document.write_files(yaml_file)
+
+    assert yaml_file.read_text().startswith('# User comment\ntitle: Story\n')
+    assert 'outline: |-\n      First beat\n' in yaml_file.read_text()
+    assert yaml_file.with_suffix('.md').read_text() == '# Chapter\n\nBody'

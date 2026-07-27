@@ -2,8 +2,8 @@ from uuid import UUID
 
 from pytest_mock import MockerFixture
 
+from ai_story_writer.lib import id as id_utils
 from ai_story_writer.types import Chapter
-from ai_story_writer.utils import id as id_utils
 
 
 def test_generate_id_retries_collision(mocker: MockerFixture):
