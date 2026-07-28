@@ -1,10 +1,12 @@
+import json
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from jinja2 import DictLoader, Environment
 
 from ai_story_writer.clients.__llm_client__ import LlmClient
-from ai_story_writer.lib import llm
+from ai_story_writer.lib import llm, prompt
 from ai_story_writer.types import Message, LlmModel
 
 
@@ -40,7 +42,11 @@ def isolate_clients():
 
 
 @pytest.fixture
-def template_environment(monkeypatch: pytest.MonkeyPatch) -> Environment:
+def template_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Environment:
+    prompts_path = tmp_path / 'prompts'
+    prompts_path.mkdir()
+    (prompts_path / 'prompt.json').write_text(json.dumps({'sections': [{'name': 'prompt'}]}))
+    (prompts_path / 'convo.json').write_text(json.dumps({'sections': [{'name': 'convo'}]}))
     environment = Environment(
         loader=DictLoader(
             {
@@ -52,5 +58,6 @@ def template_environment(monkeypatch: pytest.MonkeyPatch) -> Environment:
             }
         )
     )
-    monkeypatch.setattr(llm, 'jinja_env', environment)
+    monkeypatch.setattr(prompt, 'prompts_path', prompts_path)
+    monkeypatch.setattr(prompt, 'jinja_env', environment)
     return environment

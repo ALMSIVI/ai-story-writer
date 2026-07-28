@@ -1,0 +1,12 @@
+{
+    "sections": [
+        {"name": "next-chapter-role"},
+        {"name": "story-lore"},
+        {"name": "story-summary"},
+        {"name": "previous-chapters"},
+        {"name": "future-context"},
+        {"name": "current-chapter-task"},
+        {"name": "chapter-guidelines"},
+        {"name": "write-chapter"}
+    ]
+}

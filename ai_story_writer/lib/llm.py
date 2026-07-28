@@ -1,7 +1,7 @@
-from jinja2 import Environment, FileSystemLoader
-from pathlib import Path
 from typing import Iterator
+
 from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, OpenAIClient, OllamaClient
+from ai_story_writer.lib.prompt import render_prompt
 from ai_story_writer.types import (
     LlmModel,
     Message,
@@ -14,8 +14,6 @@ from ai_story_writer.types import (
     GenerationErrorEvent,
 )
 
-templates_path = Path('config', 'templates')
-jinja_env = Environment(loader=FileSystemLoader(templates_path))
 clients: dict[str, LlmClient] = {}
 
 
@@ -82,9 +80,6 @@ def _create_prompt(
     template: str,
     full_chapter_count: int | None,
 ) -> str:
-    template_name = f'{template}.jinja'
-    jinja_template = jinja_env.get_template(template_name)
-
     previous_chapters = story.chapters[:chapter_index]
     current_chapter = story.chapters[chapter_index]
 
@@ -100,14 +95,17 @@ def _create_prompt(
     if chapter_index < len(story.chapters) - 1:
         next_outline = story.chapters[chapter_index + 1].outline
 
-    return jinja_template.render(
-        title=story.title,
-        style=story.style,
-        lore=_get_lore(story, chapter_index),
-        summary=summary,
-        previous=previous_contents,
-        current=current_chapter.outline,
-        next=next_outline,
+    return render_prompt(
+        template,
+        {
+            'title': story.title,
+            'style': story.style,
+            'lore': _get_lore(story, chapter_index),
+            'summary': summary,
+            'previous': previous_contents,
+            'current': current_chapter.outline,
+            'next': next_outline,
+        },
     )
 
 
@@ -116,12 +114,13 @@ def _create_history(
     chapter_index: int,
     template: str,
 ) -> list[Message]:
-    template_name = f'{template}.jinja'
-    jinja_template = jinja_env.get_template(template_name)
-    system_message = jinja_template.render(
-        title=story.title,
-        style=story.style,
-        lore=_get_lore(story, chapter_index),
+    system_message = render_prompt(
+        template,
+        {
+            'title': story.title,
+            'style': story.style,
+            'lore': _get_lore(story, chapter_index),
+        },
     )
 
     messages = [Message(role=Role.SYSTEM, content=system_message)]

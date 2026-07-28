@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from ai_story_writer.commands import CommandError
 from ai_story_writer.commands.generate import register as register_generate
 from ai_story_writer.lib.config import GenerationConfigError
+from ai_story_writer.lib.prompt import PromptTemplateError
 from ai_story_writer.lib.yaml import StoryFileError
 
 
@@ -16,7 +17,7 @@ def start():
     args = parser.parse_args()
     try:
         args.func(args)
-    except (CommandError, GenerationConfigError, StoryFileError) as error:
+    except (CommandError, GenerationConfigError, PromptTemplateError, StoryFileError) as error:
         parser.error(str(error))
 
 

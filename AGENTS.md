@@ -4,7 +4,7 @@
 
 AI Story Writer is a Python CLI that expands chapter outlines into fully-fledged stories with an LLM. The installed command is `cli`; the only current subcommand is `generate`.
 
-The application keeps story planning data in a YAML file and generated prose in a sibling Markdown file. Generation options use layered JSON/story configuration. Provider configuration and active prompt templates live under `config/` at runtime, but only safe defaults under `config/defaults/` are tracked.
+The application keeps story planning data in a YAML file and generated prose in a sibling Markdown file. Generation options use layered JSON/story configuration. Provider configuration, prompt compositions, and active Jinja sections live under `config/` at runtime, but only safe defaults under `config/defaults/` are tracked.
 
 ## Repository map
 
@@ -13,14 +13,15 @@ The application keeps story planning data in a YAML file and generated prose in 
   - `ai_story_writer/commands/generate.py`: chapter selection, dry-run output, provider lifecycle, streaming, and persistence orchestration for the `generate` subcommand.
 - `ai_story_writer/setup.py`: loads model configuration and registers provider clients.
 - `ai_story_writer/lib/config.py`: loads and merges generation options from the supported configuration sources.
-- `ai_story_writer/lib/llm.py`: prompt/conversation construction, client registry, and streaming generation events.
+- `ai_story_writer/lib/prompt.py`: loads prompt compositions and renders reusable Jinja sections.
+- `ai_story_writer/lib/llm.py`: prompt context/conversation construction, client registry, and streaming generation events.
 - `ai_story_writer/lib/yaml.py`: parser/serializer and paired YAML/Markdown file I/O for stories.
 - `ai_story_writer/lib/markdown.py`: story Markdown encoding.
 - `ai_story_writer/lib/id.py`: collision-safe ID generation.
 - `ai_story_writer/clients/`: OpenAI, Anthropic, Google, and Ollama adapters implementing `LlmClient`.
 - `ai_story_writer/types/`: Pydantic models for stories, chapters, messages, configuration, models, and generation events.
 - `config/defaults/`: tracked example generation/model configuration and Jinja templates.
-- `config/config.json`, `config/models.json`, and `config/templates/`: ignored local runtime configuration; never commit credentials from these paths.
+- `config/config.json`, `config/models.json`, `config/prompts/`, and `config/templates/`: ignored local runtime configuration; never commit credentials from these paths.
 - `tests/`: main test directory.
 - `tests/conftest.py`: shared mock LLM client plus fixtures that isolate the global client registry and Jinja environment.
 
@@ -45,6 +46,8 @@ If local runtime configuration does not exist, create it from the tracked defaul
 ```sh
 cp config/defaults/config.json config/config.json
 cp config/defaults/models.json config/models.json
+mkdir -p config/prompts
+cp config/defaults/prompts/*.json config/prompts/
 mkdir -p config/templates
 cp config/defaults/templates/*.jinja config/templates/
 ```
@@ -84,7 +87,7 @@ uv run ruff format --check .
 - All user-facing configuration keys in JSON and YAML must be camelCase, while Python fields and other internal names must be snake_case. Define Pydantic aliases for this boundary; for example, `includeFullConversation` maps to `include_full_conversation` and `apiKey` maps to `api_key`.
 - `GenerationConfig` contains `model`, `template`, `includeFullConversation`, and `fullChapterCount`. Story YAML reuses this model as the optional nested `config` field. `Story` contains only story-domain data; `YamlStoryDocument` exposes the parsed `Story` and `GenerationConfig` separately.
 - Generation options are merged one field at a time in descending priority: the file passed with `-c/--config`, the story's nested `config`, `config.json` beside the story YAML, then the project's `config/config.json`. Missing implicit files are skipped; a missing explicit file is an error.
-- Non-conversation generation renders one user prompt from `config/templates/<name>.jinja`. `includeFullConversation: true` instead emits a system message followed by alternating outline/user and chapter/assistant messages.
+- A configured template loads `config/prompts/<name>.json`, then renders its enabled `config/templates/<section>.jinja` entries in order. Empty sections are omitted and the rest are joined with a blank line. `includeFullConversation: true` uses that composed prompt as a system message followed by alternating outline/user and chapter/assistant messages.
 - In standard prompt mode, `fullChapterCount` controls how many recent previous chapters are included as full prose. Older chapters use their outlines as summaries; `0` summarizes all previous chapters, while `null` includes all previous chapters in full.
 - Generation is streamed as `GenerationInProgressEvent` objects, followed by either one completion or one error event. Keep provider-specific SDK objects inside the adapters; the rest of the application should use the shared `Message`, `Role`, and event models.
 - A generated chapter title is recognized only when the content starts with `# `. `Chapter` stores that title separately and reconstructs it through `full_content` and `full_outline`.
@@ -107,5 +110,5 @@ Generated content is written to a sibling `.md` file. Top-level `# ` headings de
 - Do not make live provider calls in automated tests. Mock the shared client interface or inject a mock client into `ai_story_writer.lib.llm.clients`.
 - Test provider adapters separately from prompt/file logic. Provider APIs differ in system-message handling, roles, stream event shapes, and close semantics.
 - When touching CLI lifecycle code, verify both dry-run and real-generation paths, including client initialization and cleanup on exceptions.
-- Preserve user-owned ignored files under `data/`, `config/config.json`, `config/models.json`, and `config/templates/`. Never print, copy into tracked files, or commit local API keys.
+- Preserve user-owned ignored files under `data/`, `config/config.json`, `config/models.json`, `config/prompts/`, and `config/templates/`. Never print, copy into tracked files, or commit local API keys.
 - Keep edits focused. The repository may contain unrelated local changes; inspect `git status` before and after work and do not overwrite them.
