@@ -10,7 +10,7 @@ style: |-
   Lyrical prose with restrained dialogue.
 config:
   model: OpenAI.gpt-5
-  template: default
+  template: write
   includeFullConversation: false
   fullChapterCount: 2
 
@@ -24,10 +24,10 @@ chapters:
       The guard recognizes Mara.
 ```
 
-Generate a chapter:
+Write a chapter:
 
 ```sh
-cli generate story.yaml
+cli write story.yaml
 ```
 
 Generation options can be set in JSON:
@@ -35,7 +35,7 @@ Generation options can be set in JSON:
 ```json
 {
     "model": "OpenAI.gpt-5",
-    "template": "default",
+    "template": "write",
     "includeFullConversation": false,
     "fullChapterCount": null
 }
@@ -60,13 +60,13 @@ Options are merged one field at a time, from highest to lowest priority:
 For example, use a particular configuration file with:
 
 ```sh
-cli generate story.yaml --config configs/draft.json
+cli write story.yaml --config configs/draft.json
 ```
 
 Print the complete rendered prompt with:
 
 ```sh
-cli generate story.yaml --dry-run
+cli write story.yaml --dry-run
 ```
 
 When the resolved configuration includes a model, a dry run initializes that provider and requests an input token count. Without a model, it only prints the prompt. In conversation mode, each message is printed with its role (`system`, `user`, or `assistant`). Dry runs do not generate prose or update story files. Ollama does not provide an input token-counting API, so its dry runs only print the prompt.
@@ -76,7 +76,7 @@ When the resolved configuration includes a model, a dry run initializes that pro
 ## Prompt templates
 
 The configured `template` name resolves to a JSON composition in `config/prompts/`. For example,
-`"template": "default"` loads `config/prompts/default.json`:
+`"template": "write"` loads `config/prompts/write.json`:
 
 ```json
 {

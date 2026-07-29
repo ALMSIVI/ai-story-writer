@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from ai_story_writer.commands import CommandError
-from ai_story_writer.commands.generate import register as register_generate
+from ai_story_writer.commands.write import register as register_write
 from ai_story_writer.lib.config import GenerationConfigError
 from ai_story_writer.lib.prompt import PromptTemplateError
 from ai_story_writer.lib.yaml import StoryFileError
@@ -9,8 +9,8 @@ from ai_story_writer.lib.yaml import StoryFileError
 
 parser = ArgumentParser()
 subparsers = parser.add_subparsers(help='Tools provided by this package.', dest='command', required=True)
-generate_parser = subparsers.add_parser('generate', description='Generates a chapter.')
-register_generate(generate_parser)
+write_parser = subparsers.add_parser('write', description='Writes a chapter.')
+register_write(write_parser)
 
 
 def start():

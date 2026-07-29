@@ -6,7 +6,7 @@ from uuid import uuid4
 from ai_story_writer.commands import CommandError
 from ai_story_writer.lib.config import resolve_generation_config
 from ai_story_writer.lib.id import generate_id
-from ai_story_writer.lib.llm import count_input_tokens, create_messages, generate_chapter
+from ai_story_writer.lib.llm import count_input_tokens, create_messages, write_chapter
 from ai_story_writer.lib.yaml import YamlStoryDocument
 from ai_story_writer.setup import setup, teardown
 from ai_story_writer.types import (
@@ -27,7 +27,7 @@ def register(parser: ArgumentParser):
         '-i',
         '--id',
         default=None,
-        help='ID of chapter to regenerate, leave blank to generate first chapter without ID',
+        help='ID of chapter to write a fresh version of; leave blank to write the first chapter without an ID',
     )
     parser.add_argument('-c', '--config', help='JSON configuration file')
     parser.add_argument(
@@ -36,7 +36,7 @@ def register(parser: ArgumentParser):
         action='store_true',
         help='Print the full prompt and, when a model is configured, its input token count',
     )
-    parser.set_defaults(func=generate)
+    parser.set_defaults(func=write)
 
 
 def _resolve_model(config: GenerationConfig, dry_run: bool) -> LlmModel | None:
@@ -118,7 +118,7 @@ def _apply_completion(
     story_document.write_files(yaml_file)
 
 
-def _generate(
+def _write(
     story_document: YamlStoryDocument,
     yaml_file: Path,
     chapter_index: int,
@@ -127,7 +127,7 @@ def _generate(
 ):
     try:
         setup()
-        for event in generate_chapter(
+        for event in write_chapter(
             story_document.story,
             chapter_index,
             model,
@@ -145,7 +145,7 @@ def _generate(
         teardown()
 
 
-def generate(args: Namespace):
+def write(args: Namespace):
     yaml_file = Path(args.file)
     story_document = YamlStoryDocument.load_files(yaml_file)
     config = resolve_generation_config(yaml_file, story_document.generation_config, args.config)
@@ -162,4 +162,4 @@ def generate(args: Namespace):
 
     if model is None:
         raise CommandError('No model configured')
-    _generate(story_document, yaml_file, chapter_index, config, model)
+    _write(story_document, yaml_file, chapter_index, config, model)

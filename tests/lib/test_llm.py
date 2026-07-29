@@ -90,13 +90,13 @@ def test_create_messages_requires_previous_content(template_environment: Environ
         llm.create_messages(story, 1, 'prompt')
 
 
-def test_generate_chapter(template_environment: Environment):
+def test_write_chapter(template_environment: Environment):
     client = MockClient(chunks=['First ', 'second'])
     llm.clients['test'] = client
     story = Story(title='Story', chapters=[Chapter(outline='Outline')])
     model = LlmModel(provider='test', name='model')
 
-    events = list(llm.generate_chapter(story, 0, model, 'prompt'))
+    events = list(llm.write_chapter(story, 0, model, 'prompt'))
 
     assert events == [
         GenerationInProgressEvent(chunk='First '),
@@ -135,29 +135,29 @@ def test_count_input_tokens_validates_model(model: LlmModel, message: str):
         llm.count_input_tokens([Message(role=Role.USER, content='Prompt')], model)
 
 
-def test_generate_chapter_error(template_environment: Environment):
+def test_write_chapter_error(template_environment: Environment):
     client = MockClient(error=RuntimeError('provider failed'))
     llm.clients['test'] = client
     story = Story(title='Story', chapters=[Chapter(outline='Outline')])
 
-    events = list(llm.generate_chapter(story, 0, LlmModel(provider='test', name='model'), 'prompt'))
+    events = list(llm.write_chapter(story, 0, LlmModel(provider='test', name='model'), 'prompt'))
 
     assert events == [GenerationErrorEvent(message='provider failed')]
 
 
-def test_generate_chapter_missing_client(template_environment: Environment):
+def test_write_chapter_missing_client(template_environment: Environment):
     story = Story(title='Story', chapters=[Chapter(outline='Outline')])
 
     with pytest.raises(ValueError, match='client missing does not exist'):
-        list(llm.generate_chapter(story, 0, LlmModel(provider='missing', name='model'), 'prompt'))
+        list(llm.write_chapter(story, 0, LlmModel(provider='missing', name='model'), 'prompt'))
 
 
-def test_generate_chapter_unsupported_model(template_environment: Environment):
+def test_write_chapter_unsupported_model(template_environment: Environment):
     llm.clients['test'] = MockClient()
     story = Story(title='Story', chapters=[Chapter(outline='Outline')])
 
     with pytest.raises(ValueError, match='model unsupported not supported in client test'):
-        list(llm.generate_chapter(story, 0, LlmModel(provider='test', name='unsupported'), 'prompt'))
+        list(llm.write_chapter(story, 0, LlmModel(provider='test', name='unsupported'), 'prompt'))
 
 
 def test_cleanup_clients():

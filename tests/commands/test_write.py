@@ -7,7 +7,7 @@ from pytest import CaptureFixture
 from pytest_mock import MockerFixture
 
 from ai_story_writer.commands import CommandError
-from ai_story_writer.commands import generate as generate_command
+from ai_story_writer.commands import write as write_command
 from ai_story_writer.lib.markdown import dump_markdown
 from ai_story_writer.lib.yaml import YamlStoryDocument
 from ai_story_writer.types import (
@@ -50,7 +50,7 @@ def _write_story(
     return story_file
 
 
-def test_generate_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
+def test_write_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
     story_file = _write_story(
         tmp_path,
         Story(
@@ -64,15 +64,15 @@ def test_generate_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: Capture
     original_yaml = story_file.read_text()
     original_md = story_file.with_suffix('.md').read_text()
     create_messages = mocker.patch.object(
-        generate_command,
+        write_command,
         'create_messages',
         return_value=[Message(role=Role.USER, content='Rendered prompt')],
     )
-    count_input_tokens = mocker.patch.object(generate_command, 'count_input_tokens', return_value=123)
-    setup = mocker.patch.object(generate_command, 'setup')
-    teardown = mocker.patch.object(generate_command, 'teardown')
+    count_input_tokens = mocker.patch.object(write_command, 'count_input_tokens', return_value=123)
+    setup = mocker.patch.object(write_command, 'setup')
+    teardown = mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file, dry_run=True))
+    write_command.write(_args(story_file, dry_run=True))
 
     assert capsys.readouterr().out == 'Rendered prompt\nInput tokens: 123\n'
     assert story_file.read_text() == original_yaml
@@ -94,7 +94,7 @@ def test_generate_dry_run(tmp_path: Path, mocker: MockerFixture, capsys: Capture
     teardown.assert_called_once_with()
 
 
-def test_generate_dry_run_include_full_conversation(
+def test_write_dry_run_include_full_conversation(
     tmp_path: Path,
     mocker: MockerFixture,
     capsys: CaptureFixture[str],
@@ -108,24 +108,24 @@ def test_generate_dry_run_include_full_conversation(
         GenerationConfig(includeFullConversation=True),
     )
     create_messages = mocker.patch.object(
-        generate_command,
+        write_command,
         'create_messages',
         return_value=[
             Message(role=Role.SYSTEM, content='System'),
             Message(role=Role.USER, content='Outline'),
         ],
     )
-    mocker.patch.object(generate_command, 'count_input_tokens', return_value=None)
-    mocker.patch.object(generate_command, 'setup')
-    mocker.patch.object(generate_command, 'teardown')
+    mocker.patch.object(write_command, 'count_input_tokens', return_value=None)
+    mocker.patch.object(write_command, 'setup')
+    mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file, dry_run=True))
+    write_command.write(_args(story_file, dry_run=True))
 
     assert capsys.readouterr().out == '[system]\nSystem\n\n[user]\nOutline\n'
     assert create_messages.call_args.kwargs['include_full_conversation'] is True
 
 
-def test_generate_dry_run_without_model(
+def test_write_dry_run_without_model(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mocker: MockerFixture,
@@ -135,21 +135,21 @@ def test_generate_dry_run_without_model(
     story_file = tmp_path / 'story.yaml'
     story_file.write_text('title: Story\nconfig:\n  template: prompt\nchapters:\n  - outline: Outline\n')
     mocker.patch.object(
-        generate_command,
+        write_command,
         'create_messages',
         return_value=[Message(role=Role.USER, content='Rendered prompt')],
     )
-    setup = mocker.patch.object(generate_command, 'setup')
-    teardown = mocker.patch.object(generate_command, 'teardown')
+    setup = mocker.patch.object(write_command, 'setup')
+    teardown = mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file, dry_run=True))
+    write_command.write(_args(story_file, dry_run=True))
 
     assert capsys.readouterr().out == 'Rendered prompt\n'
     setup.assert_not_called()
     teardown.assert_not_called()
 
 
-def test_generate_dry_run_no_token_count(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
+def test_write_dry_run_no_token_count(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
     story_file = _write_story(
         tmp_path,
         Story(
@@ -159,42 +159,42 @@ def test_generate_dry_run_no_token_count(tmp_path: Path, mocker: MockerFixture, 
         GenerationConfig(model='Ollama.model'),
     )
     mocker.patch.object(
-        generate_command,
+        write_command,
         'create_messages',
         return_value=[Message(role=Role.USER, content='Rendered prompt')],
     )
-    count_input_tokens = mocker.patch.object(generate_command, 'count_input_tokens', return_value=None)
-    mocker.patch.object(generate_command, 'setup')
-    mocker.patch.object(generate_command, 'teardown')
+    count_input_tokens = mocker.patch.object(write_command, 'count_input_tokens', return_value=None)
+    mocker.patch.object(write_command, 'setup')
+    mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file, dry_run=True))
+    write_command.write(_args(story_file, dry_run=True))
 
     assert capsys.readouterr().out == 'Rendered prompt\n'
     count_input_tokens.assert_called_once()
 
 
-def test_generate_write(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
+def test_write_persists_chapter(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
     story_file = _write_story(
         tmp_path,
         Story(title='Story', chapters=[Chapter(lore='Lore', outline='Outline')]),
     )
     story_id = UUID('00000000-0000-0000-0000-000000000001')
     chapter_id = '00000000-0000-0000-0000-000000000002'
-    mocker.patch.object(generate_command, 'uuid4', return_value=story_id)
-    mocker.patch.object(generate_command, 'generate_id', return_value=chapter_id)
-    generate_chapter = mocker.patch.object(
-        generate_command,
-        'generate_chapter',
+    mocker.patch.object(write_command, 'uuid4', return_value=story_id)
+    mocker.patch.object(write_command, 'generate_id', return_value=chapter_id)
+    write_chapter = mocker.patch.object(
+        write_command,
+        'write_chapter',
         return_value=[
             GenerationInProgressEvent(chunk='# Chapter'),
             GenerationInProgressEvent(chunk='\n\nBody'),
             GenerationCompletedEvent(content='# Chapter\n\nBody'),
         ],
     )
-    setup = mocker.patch.object(generate_command, 'setup')
-    teardown = mocker.patch.object(generate_command, 'teardown')
+    setup = mocker.patch.object(write_command, 'setup')
+    teardown = mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file))
+    write_command.write(_args(story_file))
 
     assert capsys.readouterr().out == '# Chapter\n\nBody'
     generated_story = YamlStoryDocument.load(story_file.read_text(), story_file.with_suffix('.md').read_text()).story
@@ -202,12 +202,12 @@ def test_generate_write(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFi
     assert generated_story.chapters == [
         Chapter(id=chapter_id, lore='Lore', outline='Outline', content='# Chapter\n\nBody')
     ]
-    call_story, chapter_index, model, template = generate_chapter.call_args.args
+    call_story, chapter_index, model, template = write_chapter.call_args.args
     assert call_story == generated_story
     assert chapter_index == 0
     assert model == LlmModel(provider='test', name='model')
     assert template == 'prompt'
-    assert generate_chapter.call_args.kwargs == {
+    assert write_chapter.call_args.kwargs == {
         'include_full_conversation': False,
         'full_chapter_count': 1,
     }
@@ -215,18 +215,18 @@ def test_generate_write(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFi
     teardown.assert_called_once_with()
 
 
-def test_generate_error(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
+def test_write_error(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixture[str]):
     story_file = _write_story(tmp_path, Story(title='Story', chapters=[Chapter(outline='Outline')]))
     original_yaml = story_file.read_text()
     mocker.patch.object(
-        generate_command,
-        'generate_chapter',
+        write_command,
+        'write_chapter',
         return_value=[GenerationErrorEvent(message='provider failed')],
     )
-    mocker.patch.object(generate_command, 'setup')
-    teardown = mocker.patch.object(generate_command, 'teardown')
+    mocker.patch.object(write_command, 'setup')
+    teardown = mocker.patch.object(write_command, 'teardown')
 
-    generate_command.generate(_args(story_file))
+    write_command.write(_args(story_file))
 
     captured = capsys.readouterr()
     assert captured.out == ''
@@ -257,20 +257,20 @@ def test_generate_error(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFi
         ),
     ],
 )
-def test_generate_missing_chapter(tmp_path: Path, chapter_id: str | None, story: Story, message: str):
+def test_write_missing_chapter(tmp_path: Path, chapter_id: str | None, story: Story, message: str):
     story_file = _write_story(tmp_path, story)
 
     with pytest.raises(KeyError, match=message):
-        generate_command.generate(_args(story_file, id=chapter_id, dry_run=True))
+        write_command.write(_args(story_file, id=chapter_id, dry_run=True))
 
 
-def test_generate_requires_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture):
+def test_write_requires_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture):
     monkeypatch.chdir(tmp_path)
     story_file = tmp_path / 'story.yaml'
     story_file.write_text('title: Story\nconfig:\n  template: prompt\nchapters:\n  - outline: Outline\n')
-    setup = mocker.patch.object(generate_command, 'setup')
+    setup = mocker.patch.object(write_command, 'setup')
 
     with pytest.raises(CommandError, match='No model configured'):
-        generate_command.generate(_args(story_file))
+        write_command.write(_args(story_file))
 
     setup.assert_not_called()

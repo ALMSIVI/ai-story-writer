@@ -3,17 +3,17 @@ from pytest_mock import MockerFixture
 
 from ai_story_writer import cli
 from ai_story_writer.commands import CommandError
-from ai_story_writer.commands.generate import generate
+from ai_story_writer.commands.write import write
 from ai_story_writer.lib.prompt import PromptTemplateError
 
 
-def test_generate_command_is_registered():
-    args = cli.parser.parse_args(['generate', 'story.yaml', '--dry-run'])
+def test_write_command_is_registered():
+    args = cli.parser.parse_args(['write', 'story.yaml', '--dry-run'])
 
-    assert args.command == 'generate'
+    assert args.command == 'write'
     assert args.file == 'story.yaml'
     assert args.dry_run is True
-    assert args.func is generate
+    assert args.func is write
 
 
 @pytest.mark.parametrize('error', [CommandError('failed'), PromptTemplateError('failed')])

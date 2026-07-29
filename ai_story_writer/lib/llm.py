@@ -161,7 +161,7 @@ def count_input_tokens(messages: list[Message], model: LlmModel) -> int | None:
     return client.count_input_tokens(messages, model.name)
 
 
-def generate_chapter(
+def write_chapter(
     story: Story,
     chapter_index: int,
     model: LlmModel,
