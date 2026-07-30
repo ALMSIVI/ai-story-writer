@@ -1,6 +1,8 @@
 {
     "model": "OpenAI.gpt-5",
-    "template": "write",
+    "templates": {
+        "write": "write"
+    },
     "includeFullConversation": false,
     "fullChapterCount": null
 }

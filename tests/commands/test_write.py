@@ -41,7 +41,7 @@ def _write_story(
 ) -> Path:
     story_file = tmp_path / 'story.yaml'
     (tmp_path / 'config.json').write_text(
-        '{"model":"test.model","template":"prompt","includeFullConversation":false,"fullChapterCount":1}'
+        '{"model":"test.model","templates":{"write":"prompt"},"includeFullConversation":false,"fullChapterCount":1}'
     )
     story_file.write_text(YamlStoryDocument.from_story(story, generation_config).dump())
     md = dump_markdown(story)
@@ -133,7 +133,7 @@ def test_write_dry_run_without_model(
 ):
     monkeypatch.chdir(tmp_path)
     story_file = tmp_path / 'story.yaml'
-    story_file.write_text('title: Story\nconfig:\n  template: prompt\nchapters:\n  - outline: Outline\n')
+    story_file.write_text('title: Story\nconfig:\n  templates:\n    write: prompt\nchapters:\n  - outline: Outline\n')
     mocker.patch.object(
         write_command,
         'create_messages',
@@ -182,9 +182,11 @@ def test_write_persists_chapter(tmp_path: Path, mocker: MockerFixture, capsys: C
     chapter_id = '00000000-0000-0000-0000-000000000002'
     mocker.patch.object(write_command, 'uuid4', return_value=story_id)
     mocker.patch.object(write_command, 'generate_id', return_value=chapter_id)
-    write_chapter = mocker.patch.object(
+    messages = [Message(role=Role.USER, content='Rendered prompt')]
+    create_messages = mocker.patch.object(write_command, 'create_messages', return_value=messages)
+    generate = mocker.patch.object(
         write_command,
-        'write_chapter',
+        'generate',
         return_value=[
             GenerationInProgressEvent(chunk='# Chapter'),
             GenerationInProgressEvent(chunk='\n\nBody'),
@@ -202,15 +204,15 @@ def test_write_persists_chapter(tmp_path: Path, mocker: MockerFixture, capsys: C
     assert generated_story.chapters == [
         Chapter(id=chapter_id, lore='Lore', outline='Outline', content='# Chapter\n\nBody')
     ]
-    call_story, chapter_index, model, template = write_chapter.call_args.args
+    call_story, chapter_index, template = create_messages.call_args.args
     assert call_story == generated_story
     assert chapter_index == 0
-    assert model == LlmModel(provider='test', name='model')
     assert template == 'prompt'
-    assert write_chapter.call_args.kwargs == {
+    assert create_messages.call_args.kwargs == {
         'include_full_conversation': False,
         'full_chapter_count': 1,
     }
+    generate.assert_called_once_with(messages, LlmModel(provider='test', name='model'))
     setup.assert_called_once_with()
     teardown.assert_called_once_with()
 
@@ -220,7 +222,12 @@ def test_write_error(tmp_path: Path, mocker: MockerFixture, capsys: CaptureFixtu
     original_yaml = story_file.read_text()
     mocker.patch.object(
         write_command,
-        'write_chapter',
+        'create_messages',
+        return_value=[Message(role=Role.USER, content='Rendered prompt')],
+    )
+    mocker.patch.object(
+        write_command,
+        'generate',
         return_value=[GenerationErrorEvent(message='provider failed')],
     )
     mocker.patch.object(write_command, 'setup')
@@ -267,7 +274,7 @@ def test_write_missing_chapter(tmp_path: Path, chapter_id: str | None, story: St
 def test_write_requires_model(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture):
     monkeypatch.chdir(tmp_path)
     story_file = tmp_path / 'story.yaml'
-    story_file.write_text('title: Story\nconfig:\n  template: prompt\nchapters:\n  - outline: Outline\n')
+    story_file.write_text('title: Story\nconfig:\n  templates:\n    write: prompt\nchapters:\n  - outline: Outline\n')
     setup = mocker.patch.object(write_command, 'setup')
 
     with pytest.raises(CommandError, match='No model configured'):

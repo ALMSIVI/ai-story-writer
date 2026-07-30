@@ -14,7 +14,8 @@ The application keeps story planning data in a YAML file and generated prose in 
 - `ai_story_writer/setup.py`: loads model configuration and registers provider clients.
 - `ai_story_writer/lib/config.py`: loads and merges generation options from the supported configuration sources.
 - `ai_story_writer/lib/prompt.py`: loads prompt compositions and renders reusable Jinja sections.
-- `ai_story_writer/lib/llm.py`: prompt context/conversation construction, client registry, and streaming generation events.
+- `ai_story_writer/lib/messages.py`: builds standard prompts and full-conversation message histories from stories.
+- `ai_story_writer/lib/llm.py`: client registry, token counting, and streaming generation events.
 - `ai_story_writer/lib/yaml.py`: parser/serializer and paired YAML/Markdown file I/O for stories.
 - `ai_story_writer/lib/markdown.py`: story Markdown encoding.
 - `ai_story_writer/lib/id.py`: collision-safe ID generation.
@@ -85,9 +86,9 @@ uv run ruff format --check .
 
 - Models are selected as `<provider>.<model>` and parsed by splitting on the first period. Provider names are case-sensitive and must match keys in `config/models.json` and the client registry.
 - All user-facing configuration keys in JSON and YAML must be camelCase, while Python fields and other internal names must be snake_case. Define Pydantic aliases for this boundary; for example, `includeFullConversation` maps to `include_full_conversation` and `apiKey` maps to `api_key`.
-- `GenerationConfig` contains `model`, `template`, `includeFullConversation`, and `fullChapterCount`. Story YAML reuses this model as the optional nested `config` field. `Story` contains only story-domain data; `YamlStoryDocument` exposes the parsed `Story` and `GenerationConfig` separately.
-- Generation options are merged one field at a time in descending priority: the file passed with `-c/--config`, the story's nested `config`, `config.json` beside the story YAML, then the project's `config/config.json`. Missing implicit files are skipped; a missing explicit file is an error.
-- A configured template loads `config/prompts/<name>.json`, then renders its enabled `config/templates/<section>.jinja` entries in order. Empty sections are omitted and the rest are joined with a blank line. `includeFullConversation: true` uses that composed prompt as a system message followed by alternating outline/user and chapter/assistant messages.
+- `GenerationConfig` contains `model`, `templates`, `includeFullConversation`, and `fullChapterCount`. `templates` maps operation names such as `write` to prompt composition names. Story YAML reuses this model as the optional nested `config` field. `Story` contains only story-domain data; `YamlStoryDocument` exposes the parsed `Story` and `GenerationConfig` separately.
+- Generation options are merged one field at a time in descending priority: the file passed with `-c/--config`, the story's nested `config`, `config.json` beside the story YAML, then the project's `config/config.json`. Template mappings merge by operation at each layer. Missing implicit files are skipped; a missing explicit file is an error.
+- A configured operation template loads `config/prompts/<name>.json`, then renders its enabled `config/templates/<section>.jinja` entries in order. Empty sections are omitted and the rest are joined with a blank line. `includeFullConversation: true` uses that composed prompt as a system message followed by alternating outline/user and chapter/assistant messages.
 - In standard prompt mode, `fullChapterCount` controls how many recent previous chapters are included as full prose. Older chapters use their outlines as summaries; `0` summarizes all previous chapters, while `null` includes all previous chapters in full.
 - Generation is streamed as `GenerationInProgressEvent` objects, followed by either one completion or one error event. Keep provider-specific SDK objects inside the adapters; the rest of the application should use the shared `Message`, `Role`, and event models.
 - A generated chapter title is recognized only when the content starts with `# `. `Chapter` stores that title separately and reconstructs it through `full_content` and `full_outline`.

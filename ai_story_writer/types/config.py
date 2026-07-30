@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 class GenerationConfig(BaseModel):
     model: str | None = None
-    template: str | None = None
+    templates: dict[str, str] | None = None
     include_full_conversation: bool | None = Field(default=None, alias='includeFullConversation')
     full_chapter_count: int | None = Field(default=None, ge=0, alias='fullChapterCount')
 

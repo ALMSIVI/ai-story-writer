@@ -6,7 +6,8 @@ from uuid import uuid4
 from ai_story_writer.commands import CommandError
 from ai_story_writer.lib.config import resolve_generation_config
 from ai_story_writer.lib.id import generate_id
-from ai_story_writer.lib.llm import count_input_tokens, create_messages, write_chapter
+from ai_story_writer.lib.llm import count_input_tokens, generate
+from ai_story_writer.lib.messages import create_messages
 from ai_story_writer.lib.yaml import YamlStoryDocument
 from ai_story_writer.setup import setup, teardown
 from ai_story_writer.types import (
@@ -39,9 +40,13 @@ def register(parser: ArgumentParser):
     parser.set_defaults(func=write)
 
 
-def _resolve_model(config: GenerationConfig, dry_run: bool) -> LlmModel | None:
-    if config.template is None:
+def _resolve_template(config: GenerationConfig) -> str:
+    if config.templates is None or 'write' not in config.templates:
         raise CommandError('No template configured')
+    return config.templates['write']
+
+
+def _resolve_model(config: GenerationConfig, dry_run: bool) -> LlmModel | None:
     if config.model is None:
         if not dry_run:
             raise CommandError('No model configured')
@@ -77,11 +82,12 @@ def _dry_run(
     chapter_index: int,
     config: GenerationConfig,
     model: LlmModel | None,
+    template: str,
 ):
     messages = create_messages(
         story,
         chapter_index,
-        config.template,
+        template,
         include_full_conversation=config.include_full_conversation,
         full_chapter_count=config.full_chapter_count,
     )
@@ -124,17 +130,18 @@ def _write(
     chapter_index: int,
     config: GenerationConfig,
     model: LlmModel,
+    template: str,
 ):
+    messages = create_messages(
+        story_document.story,
+        chapter_index,
+        template,
+        include_full_conversation=config.include_full_conversation,
+        full_chapter_count=config.full_chapter_count,
+    )
     try:
         setup()
-        for event in write_chapter(
-            story_document.story,
-            chapter_index,
-            model,
-            config.template,
-            include_full_conversation=config.include_full_conversation,
-            full_chapter_count=config.full_chapter_count,
-        ):
+        for event in generate(messages, model):
             if isinstance(event, GenerationInProgressEvent):
                 print(event.chunk, end='', flush=True)
             elif isinstance(event, GenerationCompletedEvent):
@@ -149,6 +156,7 @@ def write(args: Namespace):
     yaml_file = Path(args.file)
     story_document = YamlStoryDocument.load_files(yaml_file)
     config = resolve_generation_config(yaml_file, story_document.generation_config, args.config)
+    template = _resolve_template(config)
     model = _resolve_model(config, args.dry_run)
 
     if story_document.story.id is None:
@@ -157,9 +165,9 @@ def write(args: Namespace):
     chapter_index = _find_chapter_index(story_document.story, args.id)
 
     if args.dry_run:
-        _dry_run(story_document.story, chapter_index, config, model)
+        _dry_run(story_document.story, chapter_index, config, model, template)
         return
 
     if model is None:
         raise CommandError('No model configured')
-    _write(story_document, yaml_file, chapter_index, config, model)
+    _write(story_document, yaml_file, chapter_index, config, model, template)

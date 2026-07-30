@@ -10,7 +10,8 @@ style: |-
   Lyrical prose with restrained dialogue.
 config:
   model: OpenAI.gpt-5
-  template: write
+  templates:
+    write: write
   includeFullConversation: false
   fullChapterCount: 2
 
@@ -35,7 +36,9 @@ Generation options can be set in JSON:
 ```json
 {
     "model": "OpenAI.gpt-5",
-    "template": "write",
+    "templates": {
+        "write": "write"
+    },
     "includeFullConversation": false,
     "fullChapterCount": null
 }
@@ -50,7 +53,8 @@ cp config/defaults/prompts/*.json config/prompts/
 cp config/defaults/templates/*.jinja config/templates/
 ```
 
-Options are merged one field at a time, from highest to lowest priority:
+Options are merged one field at a time, from highest to lowest priority. Entries in `templates` are merged by
+operation, so a higher-priority source can override `write` without replacing other template selections:
 
 1. A file passed with `-c/--config`
 2. The nested `config` options in the story YAML
@@ -75,8 +79,8 @@ When the resolved configuration includes a model, a dry run initializes that pro
 
 ## Prompt templates
 
-The configured `template` name resolves to a JSON composition in `config/prompts/`. For example,
-`"template": "write"` loads `config/prompts/write.json`:
+The template selected for an operation resolves to a JSON composition in `config/prompts/`. For example,
+`"templates": {"write": "write"}` loads `config/prompts/write.json` for the `write` command:
 
 ```json
 {

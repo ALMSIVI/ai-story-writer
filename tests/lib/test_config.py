@@ -11,22 +11,27 @@ def test_resolve_generation_config_merges_each_source(tmp_path: Path, monkeypatc
     project_config = tmp_path / 'config'
     project_config.mkdir()
     (project_config / 'config.json').write_text(
-        '{"model":"project.model","template":"project-template","includeFullConversation":false,"fullChapterCount":4}'
+        '{"model":"project.model","templates":{"write":"project-write","rewrite":"project-rewrite"},'
+        '"includeFullConversation":false,"fullChapterCount":4}'
     )
     story_directory = tmp_path / 'stories'
     story_directory.mkdir()
     story_file = story_directory / 'story.yaml'
     (story_directory / 'config.json').write_text(
-        '{"template":"directory-template","includeFullConversation":true,"fullChapterCount":3}'
+        '{"templates":{"write":"directory-write"},"includeFullConversation":true,"fullChapterCount":3}'
     )
     explicit_config = tmp_path / 'custom.json'
     explicit_config.write_text('{"model":"explicit.model"}')
-    generation_config = GenerationConfig(includeFullConversation=False, fullChapterCount=2)
+    generation_config = GenerationConfig(
+        templates={'rewrite': 'story-rewrite'},
+        includeFullConversation=False,
+        fullChapterCount=2,
+    )
 
     config = resolve_generation_config(story_file, generation_config, str(explicit_config))
 
     assert config.model == 'explicit.model'
-    assert config.template == 'directory-template'
+    assert config.templates == {'write': 'directory-write', 'rewrite': 'story-rewrite'}
     assert config.include_full_conversation is False
     assert config.full_chapter_count == 2
 
@@ -35,13 +40,15 @@ def test_resolve_generation_config_uses_project_fallback(tmp_path: Path, monkeyp
     monkeypatch.chdir(tmp_path)
     project_config = tmp_path / 'config'
     project_config.mkdir()
-    (project_config / 'config.json').write_text('{"model":"project.model","template":"project-template"}')
+    (project_config / 'config.json').write_text(
+        '{"model":"project.model","templates":{"write":"project-write","rewrite":"project-rewrite"}}'
+    )
     story_directory = tmp_path / 'stories'
     story_directory.mkdir()
     config = resolve_generation_config(story_directory / 'story.yaml')
 
     assert config.model == 'project.model'
-    assert config.template == 'project-template'
+    assert config.templates == {'write': 'project-write', 'rewrite': 'project-rewrite'}
     assert config.include_full_conversation is False
     assert config.full_chapter_count is None
 
@@ -51,12 +58,12 @@ def test_resolve_generation_config_skips_missing_implicit_files(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.chdir(tmp_path)
-    generation_config = GenerationConfig(template='story-template')
+    generation_config = GenerationConfig(templates={'write': 'story-write'})
 
     config = resolve_generation_config(tmp_path / 'story.yaml', generation_config)
 
     assert config.model is None
-    assert config.template == 'story-template'
+    assert config.templates == {'write': 'story-write'}
     assert config.include_full_conversation is False
     assert config.full_chapter_count is None
 

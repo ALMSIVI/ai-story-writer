@@ -41,7 +41,10 @@ def resolve_generation_config(
 
     for source in sources:
         if source is not None:
-            config = config.model_copy(update=source.model_dump(exclude_none=True))
+            updates = source.model_dump(exclude_none=True)
+            if source.templates is not None:
+                updates['templates'] = {**(config.templates or {}), **source.templates}
+            config = config.model_copy(update=updates)
 
     if config.include_full_conversation is None:
         config.include_full_conversation = False
