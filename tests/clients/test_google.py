@@ -4,7 +4,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ai_story_writer.clients import GoogleClient
-from ai_story_writer.types import LlmModel, Message, Role
+from ai_story_writer.types import LlmModel
 
 
 def test_init(mocker: MockerFixture):
@@ -57,31 +57,16 @@ def test_generate(mocker: MockerFixture):
     ]
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
     client = GoogleClient(api_key='secret', supported_models={'model'})
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Outline'),
-    ]
+    prompt = 'Outline'
 
-    chunks = list(client.generate(messages, 'model'))
+    chunks = list(client.generate(prompt, 'model'))
 
     assert chunks == ['First', ' second']
     call = sdk_client.models.generate_content_stream.call_args
     assert call.kwargs['model'] == 'model'
-    assert call.kwargs['config'].system_instruction == 'System'
     contents = call.kwargs['contents']
     assert contents[0].role == 'user'
-    assert contents[0].parts[0].text == 'Outline'
-
-
-def test_generate_with_no_system_message(mocker: MockerFixture):
-    sdk_client = mocker.Mock()
-    sdk_client.models.generate_content_stream.return_value = []
-    mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
-    client = GoogleClient(api_key='secret', supported_models={'model'})
-
-    list(client.generate([Message(role=Role.USER, content='Outline')], 'model'))
-
-    assert sdk_client.models.generate_content_stream.call_args.kwargs['config'] is None
+    assert contents[0].parts[0].text == prompt
 
 
 def test_count_input_tokens(mocker: MockerFixture):
@@ -89,19 +74,15 @@ def test_count_input_tokens(mocker: MockerFixture):
     sdk_client.models.count_tokens.return_value = SimpleNamespace(total_tokens=42)
     mocker.patch('ai_story_writer.clients.google.genai.Client', return_value=sdk_client)
     client = GoogleClient(api_key='secret', supported_models={'model'})
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Outline'),
-    ]
+    prompt = 'Outline'
 
-    input_tokens = client.count_input_tokens(messages, 'model')
+    input_tokens = client.count_input_tokens(prompt, 'model')
 
     assert input_tokens == 42
     call = sdk_client.models.count_tokens.call_args
     assert call.kwargs['model'] == 'model'
-    assert call.kwargs['config'].system_instruction == 'System'
     assert call.kwargs['contents'][0].role == 'user'
-    assert call.kwargs['contents'][0].parts[0].text == 'Outline'
+    assert call.kwargs['contents'][0].parts[0].text == prompt
 
 
 def test_generate_raises_for_prompt_feedback(mocker: MockerFixture):
@@ -117,7 +98,7 @@ def test_generate_raises_for_prompt_feedback(mocker: MockerFixture):
     client = GoogleClient(api_key='secret', supported_models={'model'})
 
     with pytest.raises(RuntimeError, match='Message blocked: SAFETY'):
-        list(client.generate([Message(role=Role.USER, content='Question')], 'model'))
+        list(client.generate('Outline', 'model'))
 
 
 def test_generate_raises_for_candidate_finish_reason(mocker: MockerFixture):
@@ -133,7 +114,7 @@ def test_generate_raises_for_candidate_finish_reason(mocker: MockerFixture):
     client = GoogleClient(api_key='secret', supported_models={'model'})
 
     with pytest.raises(RuntimeError, match='Message blocked: RECITATION'):
-        list(client.generate([Message(role=Role.USER, content='Question')], 'model'))
+        list(client.generate('Prompt', 'model'))
 
 
 def test_close(mocker: MockerFixture):

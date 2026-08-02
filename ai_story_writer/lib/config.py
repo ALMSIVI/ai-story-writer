@@ -47,8 +47,6 @@ def resolve_generation_config(
                 updates['templates'] = {**(config.templates or {}), **source.templates}
             config = config.model_copy(update=updates)
 
-    if config.include_full_conversation is None:
-        config.include_full_conversation = False
     return config
 
 

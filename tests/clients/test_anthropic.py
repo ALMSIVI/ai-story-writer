@@ -1,10 +1,9 @@
 from types import SimpleNamespace
 
-from anthropic import omit
 from pytest_mock import MockerFixture
 
 from ai_story_writer.clients import AnthropicClient
-from ai_story_writer.types import LlmModel, Message, Role
+from ai_story_writer.types import LlmModel
 
 
 def test_init(mocker: MockerFixture):
@@ -61,35 +60,18 @@ def test_generate(mocker: MockerFixture):
     sdk_client.messages.stream.return_value = stream_context
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
     client = AnthropicClient(api_key='secret', supported_models={'model'})
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Outline'),
-    ]
+    prompt = 'Outline'
 
-    chunks = list(client.generate(messages, 'model'))
+    chunks = list(client.generate(prompt, 'model'))
 
     assert chunks == ['First', ' second']
     sdk_client.messages.stream.assert_called_once_with(
         max_tokens=5000,
-        system='System',
         messages=[
-            {'role': Role.USER, 'content': 'Outline'},
+            {'role': 'user', 'content': prompt},
         ],
         model='model',
     )
-
-
-def test_generate_with_no_system_message(mocker: MockerFixture):
-    sdk_client = mocker.Mock()
-    stream_context = mocker.MagicMock()
-    stream_context.__enter__.return_value = SimpleNamespace(text_stream=[])
-    sdk_client.messages.stream.return_value = stream_context
-    mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
-    client = AnthropicClient(api_key='secret', supported_models={'model'})
-
-    list(client.generate([Message(role=Role.USER, content='Outline')], 'model'))
-
-    assert sdk_client.messages.stream.call_args.kwargs['system'] is omit
 
 
 def test_count_input_tokens(mocker: MockerFixture):
@@ -97,17 +79,13 @@ def test_count_input_tokens(mocker: MockerFixture):
     sdk_client.messages.count_tokens.return_value = SimpleNamespace(input_tokens=42)
     mocker.patch('ai_story_writer.clients.anthropic.Anthropic', return_value=sdk_client)
     client = AnthropicClient(api_key='secret', supported_models={'model'})
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Outline'),
-    ]
+    prompt = 'Outline'
 
-    input_tokens = client.count_input_tokens(messages, 'model')
+    input_tokens = client.count_input_tokens(prompt, 'model')
 
     assert input_tokens == 42
     sdk_client.messages.count_tokens.assert_called_once_with(
-        system='System',
-        messages=[{'role': Role.USER, 'content': 'Outline'}],
+        messages=[{'role': 'user', 'content': prompt}],
         model='model',
     )
 

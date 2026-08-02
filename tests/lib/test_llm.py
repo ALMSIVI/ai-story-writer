@@ -10,8 +10,6 @@ from ai_story_writer.types import (
     GenerationErrorEvent,
     GenerationInProgressEvent,
     LlmModel,
-    Message,
-    Role,
 )
 from tests.conftest import MockClient
 
@@ -63,9 +61,8 @@ def test_cleanup_clients():
 def test_count_input_tokens():
     client = MockClient()
     llm.clients['test'] = client
-    messages = [Message(role=Role.USER, content='Prompt')]
 
-    input_tokens = llm.count_input_tokens(messages, LlmModel(provider='test', name='model'))
+    input_tokens = llm.count_input_tokens('Prompt', LlmModel(provider='test', name='model'))
 
     assert input_tokens == 42
 
@@ -81,16 +78,15 @@ def test_count_input_tokens_validates_model(model: LlmModel, message: str):
     llm.clients['test'] = MockClient()
 
     with pytest.raises(ValueError, match=message):
-        llm.count_input_tokens([Message(role=Role.USER, content='Prompt')], model)
+        llm.count_input_tokens('Prompt', model)
 
 
 def test_generate():
     client = MockClient(chunks=['First ', 'second'])
     llm.clients['test'] = client
-    messages = [Message(role=Role.USER, content='Prompt')]
     model = LlmModel(provider='test', name='model')
 
-    events = list(llm.generate(messages, model))
+    events = list(llm.generate('Prompt', model))
 
     assert events == [
         GenerationInProgressEvent(chunk='First '),
@@ -100,7 +96,7 @@ def test_generate():
     assert len(client.calls) == 1
     generated_messages, model_name = client.calls[0]
     assert model_name == 'model'
-    assert generated_messages == messages
+    assert generated_messages == 'Prompt'
 
 
 def test_generate_error():
@@ -109,7 +105,7 @@ def test_generate_error():
 
     events = list(
         llm.generate(
-            [Message(role=Role.USER, content='Prompt')],
+            'Prompt',
             LlmModel(provider='test', name='model'),
         )
     )
@@ -128,4 +124,4 @@ def test_generate_validates_model(model: LlmModel, message: str):
     llm.clients['test'] = MockClient()
 
     with pytest.raises(ValueError, match=message):
-        list(llm.generate([Message(role=Role.USER, content='Prompt')], model))
+        list(llm.generate('Prompt', model))

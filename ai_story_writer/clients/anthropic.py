@@ -1,7 +1,8 @@
-from anthropic import Anthropic, omit
+from anthropic import Anthropic
+from anthropic.types import MessageParam
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types import Message, LlmModel, Role
+from ai_story_writer.types import LlmModel
 
 
 class AnthropicClient(LlmClient):
@@ -32,33 +33,23 @@ class AnthropicClient(LlmClient):
             if model_name in self.supported_models
         ]
 
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        system_message, client_messages = self.__create_input(messages)
-        with self.__client.messages.stream(
-            max_tokens=5000, system=system_message, messages=client_messages, model=model
-        ) as stream:
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
+        messages = self.__create_input(prompt)
+        with self.__client.messages.stream(max_tokens=5000, messages=messages, model=model) as stream:
             for text in stream.text_stream:
                 yield text
 
-    def count_input_tokens(self, messages: list[Message], model: str) -> int:
-        system_message, client_messages = self.__create_input(messages)
+    def count_input_tokens(self, prompt: str, model: str) -> int:
+        messages = self.__create_input(prompt)
         response = self.__client.messages.count_tokens(
-            system=system_message,
-            messages=client_messages,
+            messages=messages,
             model=model,
         )
         return response.input_tokens
 
     @staticmethod
-    def __create_input(messages: list[Message]):
-        try:
-            system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
-        except StopIteration:
-            system_message = omit
-        client_messages: list[dict[str, str]] = [
-            {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
-        ]
-        return system_message, client_messages
+    def __create_input(prompt: str) -> list[MessageParam]:
+        return [{'role': 'user', 'content': prompt}]
 
     def close(self):
         self.__client.close()

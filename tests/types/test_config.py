@@ -9,14 +9,12 @@ def test_generation_config_accepts_camel_case_aliases():
         {
             'model': 'OpenAI.gpt-5',
             'templates': {'write': 'default'},
-            'includeFullConversation': True,
             'fullChapterCount': 2,
         }
     )
 
     assert config.model == 'OpenAI.gpt-5'
     assert config.templates == {'write': 'default'}
-    assert config.include_full_conversation is True
     assert config.full_chapter_count == 2
 
 

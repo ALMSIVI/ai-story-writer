@@ -6,7 +6,6 @@ from ai_story_writer.clients import LlmClient, AnthropicClient, GoogleClient, Op
 from ai_story_writer.types import (
     GenerationCompletedEvent,
     GenerationErrorEvent,
-    Message,
     ModelConfig,
     GenerationEvent,
     GenerationInProgressEvent,
@@ -82,15 +81,15 @@ def _get_client(model: LlmModel) -> LlmClient:
     return client
 
 
-def count_input_tokens(messages: list[Message], model: LlmModel) -> int | None:
+def count_input_tokens(prompt: str, model: LlmModel) -> int | None:
     client = _get_client(model)
-    return client.count_input_tokens(messages, model.name)
+    return client.count_input_tokens(prompt, model.name)
 
 
-def generate(messages: list[Message], model: LlmModel) -> Iterator[GenerationEvent]:
+def generate(prompt: str, model: LlmModel) -> Iterator[GenerationEvent]:
     client = _get_client(model)
     try:
-        generation = client.generate(messages, model.name)
+        generation = client.generate(prompt, model.name)
         content = ''
         for chunk in generation:
             content += chunk

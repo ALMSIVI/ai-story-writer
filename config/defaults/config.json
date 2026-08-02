@@ -3,6 +3,5 @@
     "templates": {
         "write": "write"
     },
-    "includeFullConversation": false,
     "fullChapterCount": null
 }

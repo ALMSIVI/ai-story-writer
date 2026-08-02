@@ -18,7 +18,6 @@ def test_resolve_generation_config(tmp_path: Path, monkeypatch: pytest.MonkeyPat
                     'write': 'project-write',
                     'rewrite': 'project-rewrite',
                 },
-                'includeFullConversation': False,
                 'fullChapterCount': 4,
             },
             f,
@@ -33,7 +32,6 @@ def test_resolve_generation_config(tmp_path: Path, monkeypatch: pytest.MonkeyPat
                 'templates': {
                     'write': 'directory-write',
                 },
-                'includeFullConversation': True,
                 'fullChapterCount': 3,
             },
             f,
@@ -45,7 +43,6 @@ def test_resolve_generation_config(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     generation_config = GenerationConfig(
         templates={'rewrite': 'story-rewrite'},
-        includeFullConversation=False,
         fullChapterCount=2,
     )
 
@@ -53,7 +50,6 @@ def test_resolve_generation_config(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     assert config.model == 'explicit.model'
     assert config.templates == {'write': 'directory-write', 'rewrite': 'story-rewrite'}
-    assert config.include_full_conversation is False
     assert config.full_chapter_count == 2
 
 
@@ -79,7 +75,6 @@ def test_resolve_generation_config_fallback(tmp_path: Path, monkeypatch: pytest.
 
     assert config.model == 'project.model'
     assert config.templates == {'write': 'project-write', 'rewrite': 'project-rewrite'}
-    assert config.include_full_conversation is False
     assert config.full_chapter_count is None
 
 
@@ -94,7 +89,6 @@ def test_resolve_generation_config_skips_missing_implicit_files(
 
     assert config.model is None
     assert config.templates == {'write': 'story-write'}
-    assert config.include_full_conversation is False
     assert config.full_chapter_count is None
 
 

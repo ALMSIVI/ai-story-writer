@@ -10,17 +10,16 @@ The application keeps story planning data in a YAML file and generated prose in 
 
 - `ai_story_writer/cli.py`: root parser construction, command registration, dispatch, and user-facing error handling.
 - `ai_story_writer/commands/`: CLI commands; each module owns its arguments and execution workflow.
-    - `ai_story_writer/commands/write.py`: chapter completion persistence and orchestration for the `write` subcommand.
-- `ai_story_writer/lib/story.py`: generating IDs and resolving chapter position.
+    - `ai_story_writer/commands/write.py`: prompt construction, chapter completion persistence, and orchestration for the `write` subcommand.
+- `ai_story_writer/lib/story.py`: generating IDs and resolving chapter position, lore, and surrounding chapter context.
 - `ai_story_writer/lib/config.py`: loads and merges generation options from the supported configuration sources.
 - `ai_story_writer/lib/generation.py`: resolves operation settings and owns shared dry-run, provider lifecycle, and event handling.
 - `ai_story_writer/lib/prompt.py`: loads prompt compositions and renders reusable Jinja sections.
-- `ai_story_writer/lib/messages.py`: builds standard prompts and full-conversation message histories from stories.
 - `ai_story_writer/lib/llm.py`: client registry, token counting, and streaming generation events.
 - `ai_story_writer/lib/story_document.py`: parser/serializer and paired YAML/Markdown file I/O for stories.
 - `ai_story_writer/lib/markdown.py`: story Markdown encoding.
 - `ai_story_writer/clients/`: OpenAI, Anthropic, Google, and Ollama adapters implementing `LlmClient`.
-- `ai_story_writer/types/`: Pydantic models for stories, chapters, messages, configuration, models, and generation events.
+- `ai_story_writer/types/`: Pydantic models for stories, chapters, configuration, models, prompts, and generation events.
 - `config/defaults/`: tracked example generation/model configuration and Jinja templates.
 - `config/config.json`, `config/models.json`, `config/prompts/`, and `config/templates/`: ignored local runtime configuration; never commit credentials from these paths.
 - `tests/`: main test directory.
@@ -79,18 +78,18 @@ uv run ruff format --check .
 - Keep tests deterministic and network-free. Use `tmp_path` for story/config files, `mocker.patch` for SDK and lifecycle boundaries, `monkeypatch` for process state such as the working directory, and `capsys` for CLI output.
 - Keep `tests/test_cli.py` focused on parser registration, dispatch, compatibility exports, and conversion of known failures to parser errors.
 - The fixture in `tests/conftest.py` clears `ai_story_writer.lib.llm.clients` before and after every test. Register mock clients explicitly when exercising generation.
-- Provider adapter tests live in separate modules under `tests/clients/`. Patch each adapter's SDK constructor to return a mock, then assert translated roles, system-message handling, stream shapes, model filtering, errors, and close behavior without constructing live SDK clients.
+- Provider adapter tests live in separate modules under `tests/clients/`. Patch each adapter's SDK constructor to return a mock, then assert prompt translation, stream shapes, model filtering, errors, token counting, and close behavior without constructing live SDK clients.
 - Prompt tests should use an isolated Jinja environment rather than reading ignored runtime templates. File and CLI tests must not modify repository data or configuration.
 
 ## Core behavior and data contracts
 
 - Models are selected as `<provider>.<model>` and parsed by splitting on the first period. Provider names are case-sensitive and must match keys in `config/models.json` and the client registry.
-- All user-facing configuration keys in JSON and YAML must be camelCase, while Python fields and other internal names must be snake_case. Define Pydantic aliases for this boundary; for example, `includeFullConversation` maps to `include_full_conversation` and `apiKey` maps to `api_key`.
-- `GenerationConfig` contains `model`, `templates`, `includeFullConversation`, and `fullChapterCount`. `templates` maps operation names such as `write` to prompt composition names. Story YAML reuses this model as the optional nested `config` field. `Story` contains only story-domain data; `YamlStoryDocument` exposes the parsed `Story` and `GenerationConfig` separately.
+- All user-facing configuration keys in JSON and YAML must be camelCase, while Python fields and other internal names must be snake_case. Define Pydantic aliases for this boundary; for example, `apiKey` maps to `api_key`.
+- `GenerationConfig` contains `model`, `templates`, and `fullChapterCount`. `templates` maps operation names such as `write` to prompt composition names. Story YAML reuses this model as the optional nested `config` field. `Story` contains only story-domain data; `YamlStoryDocument` exposes the parsed `Story` and `GenerationConfig` separately.
 - Generation options are merged one field at a time in descending priority: the file passed with `-c/--config`, the story's nested `config`, `config.json` beside the story YAML, then the project's `config/config.json`. Template mappings merge by operation at each layer. Missing implicit files are skipped; a missing explicit file is an error.
-- A configured operation template loads `config/prompts/<name>.json`, then renders its enabled `config/templates/<section>.jinja` entries in order. Empty sections are omitted and the rest are joined with a blank line. `includeFullConversation: true` uses that composed prompt as a system message followed by alternating outline/user and chapter/assistant messages.
-- In standard prompt mode, `fullChapterCount` controls how many recent previous chapters are included as full prose. Older chapters use their outlines as summaries; `0` summarizes all previous chapters, while `null` includes all previous chapters in full.
-- Generation is streamed as `GenerationInProgressEvent` objects, followed by either one completion or one error event. Keep provider-specific SDK objects inside the adapters; the rest of the application should use the shared `Message`, `Role`, and event models.
+- A configured operation template loads `config/prompts/<name>.json`, then renders its enabled `config/templates/<section>.jinja` entries in order. Empty sections are omitted and the rest are joined with a blank line.
+- `fullChapterCount` controls how many recent previous chapters are included as full prose. Older chapters use their outlines as summaries; `0` summarizes all previous chapters, while `null` includes all previous chapters in full.
+- Generation is streamed as `GenerationInProgressEvent` objects, followed by either one completion or one error event. Keep provider-specific SDK objects inside the adapters; the rest of the application should use plain prompt strings and the shared event models.
 - A generated chapter title is recognized only when the content starts with `# `. `Chapter` stores that title separately and reconstructs it through `full_content` and `full_outline`.
 - Chapter lore inherits from the nearest preceding chapter when the current chapter has no lore.
 
@@ -107,9 +106,9 @@ Generated content is written to a sibling `.md` file. Top-level `# ` headings de
 - Add future CLI functions as self-registering modules under `ai_story_writer/commands/`. Command modules should own their arguments and orchestration; keep `ai_story_writer/cli.py` limited to root-parser concerns.
 - Put application-specific configuration, persistence, identifier, prompt, and generation helpers under `ai_story_writer/lib/`; do not recreate a generic `utils` package.
 - Add type hints and Pydantic validation at external/configuration boundaries. Preserve iterator-based streaming rather than buffering provider output in adapters.
-- Keep dry runs file-write-free: they render and print messages without generating prose or rewriting story files. When the resolved configuration contains a model, dry runs initialize that provider and may contact it to count input tokens; without a model they must remain provider-free.
+- Keep dry runs file-write-free: they render and print the prompt without generating prose or rewriting story files. When the resolved configuration contains a model, dry runs initialize that provider and may contact it to count input tokens; without a model they must remain provider-free.
 - Do not make live provider calls in automated tests. Mock the shared client interface or inject a mock client into `ai_story_writer.lib.llm.clients`.
-- Test provider adapters separately from prompt/file logic. Provider APIs differ in system-message handling, roles, stream event shapes, and close semantics.
+- Test provider adapters separately from prompt/file logic. Provider APIs differ in input shapes, stream event shapes, token counting, and close semantics.
 - When touching CLI lifecycle code, verify both dry-run and real-generation paths, including client initialization and cleanup on exceptions.
 - Preserve user-owned ignored files under `data/`, `config/config.json`, `config/models.json`, `config/prompts/`, and `config/templates/`. Never print, copy into tracked files, or commit local API keys.
 - Keep edits focused. The repository may contain unrelated local changes; inspect `git status` before and after work and do not overwrite them.

@@ -8,25 +8,16 @@ from ai_story_writer.types import (
     GenerationErrorEvent,
     GenerationInProgressEvent,
     LlmModel,
-    Message,
 )
 
-
-def _print_messages(messages: list[Message]):
-    if len(messages) == 1:
-        print(messages[0].content)
-    else:
-        print('\n\n'.join(f'[{message.role.value}]\n{message.content}' for message in messages))
-
-
-def _dry_run(messages: list[Message], model: LlmModel | None):
-    _print_messages(messages)
+def _dry_run(prompt: str, model: LlmModel | None):
+    print(prompt)
     if model is None:
         return
 
     try:
         initialize_clients()
-        input_tokens = count_input_tokens(messages, model)
+        input_tokens = count_input_tokens(prompt, model)
         if input_tokens is not None:
             print(f'Input tokens: {input_tokens}')
     finally:
@@ -34,21 +25,21 @@ def _dry_run(messages: list[Message], model: LlmModel | None):
 
 
 def run_generation(
-    messages: list[Message],
+    prompt: str,
     model: LlmModel | None,
     apply_completion: Callable[[GenerationCompletedEvent], None],
     *,
     dry_run: bool = False,
 ):
     if dry_run:
-        _dry_run(messages, model)
+        _dry_run(prompt, model)
         return
     if model is None:
         raise GenerationConfigError('No model configured')
 
     try:
         initialize_clients()
-        for event in generate(messages, model):
+        for event in generate(prompt, model):
             if isinstance(event, GenerationInProgressEvent):
                 print(event.chunk, end='', flush=True)
             elif isinstance(event, GenerationCompletedEvent):

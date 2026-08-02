@@ -7,7 +7,7 @@ from jinja2 import DictLoader, Environment
 
 from ai_story_writer.clients.__llm_client__ import LlmClient
 from ai_story_writer.lib import llm, prompt
-from ai_story_writer.types import Message, LlmModel
+from ai_story_writer.types import LlmModel
 
 
 class MockClient(LlmClient):
@@ -15,14 +15,14 @@ class MockClient(LlmClient):
         self.supported_models = {'model'}
         self.chunks = chunks or []
         self.error = error
-        self.calls: list[tuple[list[Message], str]] = []
+        self.calls: list[tuple[str, str]] = []
         self.closed = False
 
     def list_models(self) -> list[LlmModel]:
         return [LlmModel(provider='test', name='model')]
 
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        self.calls.append((messages, model))
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
+        self.calls.append((prompt, model))
         if self.error is not None:
             raise self.error
         yield from self.chunks
@@ -30,7 +30,7 @@ class MockClient(LlmClient):
     def close(self):
         self.closed = True
 
-    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+    def count_input_tokens(self, prompt: str, model: str) -> int | None:
         return 42
 
 

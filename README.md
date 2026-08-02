@@ -12,7 +12,6 @@ config:
   model: OpenAI.gpt-5
   templates:
     write: write
-  includeFullConversation: false
   fullChapterCount: 2
 
 chapters:
@@ -39,7 +38,6 @@ Generation options can be set in JSON:
     "templates": {
         "write": "write"
     },
-    "includeFullConversation": false,
     "fullChapterCount": null
 }
 ```
@@ -73,9 +71,9 @@ Print the complete rendered prompt with:
 cli write story.yaml --dry-run
 ```
 
-When the resolved configuration includes a model, a dry run initializes that provider and requests an input token count. Without a model, it only prints the prompt. In conversation mode, each message is printed with its role (`system`, `user`, or `assistant`). Dry runs do not generate prose or update story files. Ollama does not provide an input token-counting API, so its dry runs only print the prompt.
+When the resolved configuration includes a model, a dry run initializes that provider and requests an input token count. Without a model, it only prints the prompt. Dry runs do not generate prose or update story files. Ollama does not provide an input token-counting API, so its dry runs only print the prompt.
 
-`includeFullConversation` switches to chatbot-style history: every previous outline is sent as a user message and every generated chapter as an assistant message. `fullChapterCount` controls how many of the most recent previous chapters are included as full prose in the standard prompt; older chapters are represented by their outlines to save tokens. Set it to `0` to summarize every previous chapter by outline, or `null` to include all previous chapters in full.
+`fullChapterCount` controls how many of the most recent previous chapters are included as full prose; older chapters are represented by their outlines to save tokens. Set it to `0` to summarize every previous chapter by outline, or `null` to include all previous chapters in full.
 
 ## Prompt templates
 

@@ -9,8 +9,6 @@ from ai_story_writer.types import (
     GenerationErrorEvent,
     GenerationInProgressEvent,
     LlmModel,
-    Message,
-    Role,
 )
 
 
@@ -23,7 +21,7 @@ def test_dry_run_without_model(
     apply_completion = mocker.Mock()
 
     generation.run_generation(
-        [Message(role=Role.USER, content='Prompt')],
+        'Prompt',
         None,
         apply_completion,
         dry_run=True,
@@ -39,20 +37,16 @@ def test_dry_run_with_model(
     mocker: MockerFixture,
     capsys: CaptureFixture[str],
 ):
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Prompt'),
-    ]
     model = LlmModel(provider='Provider', name='model')
     mocker.patch.object(generation, 'initialize_clients')
     count_input_tokens = mocker.patch.object(generation, 'count_input_tokens', return_value=123)
     cleanup_clients = mocker.patch.object(generation, 'cleanup_clients')
     apply_completion = mocker.Mock()
 
-    generation.run_generation(messages, model, apply_completion, dry_run=True)
+    generation.run_generation('Prompt', model, apply_completion, dry_run=True)
 
-    assert capsys.readouterr().out == '[system]\nSystem\n\n[user]\nPrompt\nInput tokens: 123\n'
-    count_input_tokens.assert_called_once_with(messages, model)
+    assert capsys.readouterr().out == 'Prompt\nInput tokens: 123\n'
+    count_input_tokens.assert_called_once_with('Prompt', model)
     apply_completion.assert_not_called()
     cleanup_clients.assert_called_once_with()
 
@@ -61,17 +55,17 @@ def test_dry_run_without_token_count(
     mocker: MockerFixture,
     capsys: CaptureFixture[str],
 ):
-    messages = [Message(role=Role.USER, content='Prompt')]
+    prompt = 'Prompt'
     model = LlmModel(provider='Ollama', name='model')
     mocker.patch.object(generation, 'initialize_clients')
     count_input_tokens = mocker.patch.object(generation, 'count_input_tokens', return_value=None)
     cleanup_clients = mocker.patch.object(generation, 'cleanup_clients')
     apply_completion = mocker.Mock()
 
-    generation.run_generation(messages, model, apply_completion, dry_run=True)
+    generation.run_generation(prompt, model, apply_completion, dry_run=True)
 
     assert capsys.readouterr().out == 'Prompt\n'
-    count_input_tokens.assert_called_once_with(messages, model)
+    count_input_tokens.assert_called_once_with(prompt, model)
     apply_completion.assert_not_called()
     cleanup_clients.assert_called_once_with()
 
@@ -81,7 +75,7 @@ def test_run_generation_requires_model(mocker: MockerFixture):
 
     with pytest.raises(GenerationConfigError, match='No model configured'):
         generation.run_generation(
-            [Message(role=Role.USER, content='Prompt')],
+            'Prompt',
             None,
             mocker.Mock(),
         )
@@ -90,7 +84,7 @@ def test_run_generation_requires_model(mocker: MockerFixture):
 
 
 def test_run_generation(mocker: MockerFixture, capsys: CaptureFixture[str]):
-    messages = [Message(role=Role.USER, content='Prompt')]
+    prompt = 'Prompt'
     model = LlmModel(provider='Provider', name='model')
     completed = GenerationCompletedEvent(content='Content')
     initialize_clients = mocker.patch.object(generation, 'initialize_clients')
@@ -106,17 +100,17 @@ def test_run_generation(mocker: MockerFixture, capsys: CaptureFixture[str]):
     cleanup_clients = mocker.patch.object(generation, 'cleanup_clients')
     apply_completion = mocker.Mock()
 
-    generation.run_generation(messages, model, apply_completion)
+    generation.run_generation(prompt, model, apply_completion)
 
     assert capsys.readouterr().out == 'First second'
     initialize_clients.assert_called_once_with()
-    generate.assert_called_once_with(messages, model)
+    generate.assert_called_once_with(prompt, model)
     apply_completion.assert_called_once_with(completed)
     cleanup_clients.assert_called_once_with()
 
 
 def test_run_generation_error_event(mocker: MockerFixture, capsys: CaptureFixture[str]):
-    messages = [Message(role=Role.USER, content='Prompt')]
+    prompt = 'Prompt'
     model = LlmModel(provider='Provider', name='model')
     mocker.patch.object(generation, 'initialize_clients')
     mocker.patch.object(
@@ -127,7 +121,7 @@ def test_run_generation_error_event(mocker: MockerFixture, capsys: CaptureFixtur
     cleanup_clients = mocker.patch.object(generation, 'cleanup_clients')
     apply_completion = mocker.Mock()
 
-    generation.run_generation(messages, model, apply_completion)
+    generation.run_generation(prompt, model, apply_completion)
 
     captured = capsys.readouterr()
     assert captured.out == ''
@@ -144,7 +138,7 @@ def test_generation_lifecycle_cleans_up_on_exception(mocker: MockerFixture):
 
     with pytest.raises(RuntimeError, match='failed'):
         generation.run_generation(
-            [Message(role=Role.USER, content='Prompt')],
+            'Prompt',
             LlmModel(provider='Provider', name='model'),
             mocker.Mock(),
         )

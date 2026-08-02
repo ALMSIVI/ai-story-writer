@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Iterator
-from ai_story_writer.types import Message, LlmModel
+from ai_story_writer.types import LlmModel
 
 
 class LlmClient(ABC):
@@ -12,11 +12,11 @@ class LlmClient(ABC):
         pass
 
     @abstractmethod
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
         pass
 
     @abstractmethod
-    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+    def count_input_tokens(self, prompt: str, model: str) -> int | None:
         pass
 
     @abstractmethod

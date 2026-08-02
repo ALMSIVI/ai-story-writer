@@ -1,7 +1,7 @@
 from ollama import Client
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types import Message, LlmModel
+from ai_story_writer.types import LlmModel
 
 
 class OllamaClient(LlmClient):
@@ -37,14 +37,14 @@ class OllamaClient(LlmClient):
             if model_name in self.supported_models
         ]
 
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        client_messages: list[dict[str, str]] = [
-            {'role': message.role, 'content': message.content} for message in messages
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
+        messages = [
+            {'role': 'user', 'content': prompt}
         ]
-        for chunk in self.__client.chat(messages=client_messages, model=model, stream=True):
+        for chunk in self.__client.chat(messages=messages, model=model, stream=True):
             yield chunk['message']['content']
 
-    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
+    def count_input_tokens(self, prompt: str, model: str) -> int | None:
         return None # Ollama doesn't have an API to count input tokens
 
     def close(self):

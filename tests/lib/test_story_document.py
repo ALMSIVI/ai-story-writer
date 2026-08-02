@@ -16,7 +16,6 @@ config:
   model: OpenAI.gpt-5
   templates:
     write: default
-  includeFullConversation: true
   fullChapterCount: 2
 chapters:
   - id: first
@@ -52,7 +51,6 @@ chapters:
     assert document.generation_config == GenerationConfig(
         model='OpenAI.gpt-5',
         templates={'write': 'default'},
-        includeFullConversation=True,
         fullChapterCount=2,
     )
 
@@ -108,7 +106,6 @@ def test_from_story():
         GenerationConfig(
             model='OpenAI.gpt-5',
             templates={'write': 'default'},
-            includeFullConversation=False,
             fullChapterCount=2,
         ),
     )
@@ -123,7 +120,6 @@ config:
   model: OpenAI.gpt-5
   templates:
     write: default
-  includeFullConversation: false
   fullChapterCount: 2
 chapters:
   - lore: |-

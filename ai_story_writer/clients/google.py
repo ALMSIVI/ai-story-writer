@@ -2,7 +2,7 @@ from google import genai
 from google.genai import types
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types import Message, LlmModel, Role
+from ai_story_writer.types import LlmModel
 
 
 class GoogleClient(LlmClient):
@@ -25,9 +25,9 @@ class GoogleClient(LlmClient):
             if model_name in self.supported_models
         ]
 
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        config, contents = self.__create_input(messages, types.GenerateContentConfig)
-        for chunk in self.__client.models.generate_content_stream(contents=contents, model=model, config=config):
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
+        contents = self.__create_input(prompt)
+        for chunk in self.__client.models.generate_content_stream(contents=contents, model=model):
             if chunk.prompt_feedback:
                 raise RuntimeError(f'Message blocked: {chunk.prompt_feedback.block_reason}')
 
@@ -38,29 +38,19 @@ class GoogleClient(LlmClient):
 
             yield chunk.text
 
-    def count_input_tokens(self, messages: list[Message], model: str) -> int | None:
-        config, contents = self.__create_input(messages, types.CountTokensConfig)
-        response = self.__client.models.count_tokens(contents=contents, model=model, config=config)
+    def count_input_tokens(self, prompt: str, model: str) -> int | None:
+        contents = self.__create_input(prompt)
+        response = self.__client.models.count_tokens(contents=contents, model=model)
         return response.total_tokens
 
     @staticmethod
-    def __create_input(messages: list[Message], config_type):
-        try:
-            config = config_type(
-                system_instruction=next(message.content for message in messages if message.role == Role.SYSTEM)
-            )
-        except StopIteration:
-            config = None
-
-        contents = [
+    def __create_input(prompt: str):
+        return [
             types.Content(
-                role='user' if message.role == Role.USER else 'model',
-                parts=[types.Part.from_text(text=message.content)],
+                role='user',
+                parts=[types.Part.from_text(text=prompt)],
             )
-            for message in messages
-            if message.role != Role.SYSTEM
         ]
-        return config, contents
 
     def close(self):
         self.__client.close()

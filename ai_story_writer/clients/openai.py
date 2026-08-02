@@ -1,7 +1,8 @@
-from openai import OpenAI, omit
+from openai import OpenAI
+from openai.types.responses import ResponseInputItemParam
 from typing import Iterator
 from .__llm_client__ import LlmClient
-from ai_story_writer.types import Message, LlmModel, Role
+from ai_story_writer.types import LlmModel
 
 
 class OpenAIClient(LlmClient):
@@ -36,33 +37,24 @@ class OpenAIClient(LlmClient):
             if model_name in self.supported_models
         ]
 
-    def generate(self, messages: list[Message], model: str) -> Iterator[str]:
-        system_message, client_messages = self.__create_input(messages)
-        with self.__client.responses.stream(instructions=system_message, input=client_messages, model=model) as stream:
+    def generate(self, prompt: str, model: str) -> Iterator[str]:
+        messages = self.__create_input(prompt)
+        with self.__client.responses.stream(input=messages, model=model) as stream:
             for event in stream:
                 if event.type == 'response.output_text.delta':
                     yield event.delta
 
-    def count_input_tokens(self, messages: list[Message], model: str) -> int:
-        system_message, client_messages = self.__create_input(messages)
+    def count_input_tokens(self, prompt: str, model: str) -> int:
+        messages = self.__create_input(prompt)
         response = self.__client.responses.input_tokens.count(
-            instructions=system_message,
-            input=client_messages,
+            input=messages,
             model=model,
         )
         return response.input_tokens
 
     @staticmethod
-    def __create_input(messages: list[Message]):
-        try:
-            system_message = next(message.content for message in messages if message.role == Role.SYSTEM)
-        except StopIteration:
-            system_message = omit
-
-        client_messages: list[dict[str, str]] = [
-            {'role': message.role, 'content': message.content} for message in messages if message.role != Role.SYSTEM
-        ]
-        return system_message, client_messages
+    def __create_input(prompt: str) -> list[ResponseInputItemParam]:
+        return [{'role': 'user', 'content': prompt}]
 
     def close(self):
         self.__client.close()

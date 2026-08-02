@@ -13,8 +13,6 @@ from ai_story_writer.lib.story_document import YamlStoryDocument
 from ai_story_writer.types import (
     Chapter,
     GenerationCompletedEvent,
-    Message,
-    Role,
     Story,
 )
 
@@ -37,7 +35,7 @@ def register(parser: ArgumentParser):
     parser.set_defaults(func=write)
 
 
-def _create_messages(
+def _create_prompt(
     story: Story,
     chapter_index: int,
     template: str,
@@ -46,23 +44,18 @@ def _create_messages(
     current_chapter = story.chapters[chapter_index]
     summary, previous_contents = get_previous_context(story, chapter_index, full_chapter_count)
 
-    return [
-        Message(
-            role=Role.USER,
-            content=render_prompt(
-                template,
-                {
-                    'title': story.title,
-                    'style': story.style,
-                    'lore': get_lore(story, chapter_index),
-                    'summary': summary,
-                    'previous': previous_contents,
-                    'current': current_chapter.outline,
-                    'next': get_next_outline(story, chapter_index),
-                },
-            ),
-        )
-    ]
+    return render_prompt(
+        template,
+        {
+            'title': story.title,
+            'style': story.style,
+            'lore': get_lore(story, chapter_index),
+            'summary': summary,
+            'previous': previous_contents,
+            'current': current_chapter.outline,
+            'next': get_next_outline(story, chapter_index),
+        },
+    )
 
 
 def _apply_completion(
@@ -95,7 +88,7 @@ def write(args: Namespace):
         story_document.set_story_id(str(uuid4()))
 
     chapter_index = find_chapter_index(story_document.story, args.id)
-    messages = _create_messages(story_document.story, chapter_index, template, config.full_chapter_count)
+    prompt = _create_prompt(story_document.story, chapter_index, template, config.full_chapter_count)
 
     apply_completion = partial(_apply_completion, story_document, yaml_file, chapter_index)
-    run_generation(messages, model, apply_completion, dry_run=args.dry_run)
+    run_generation(prompt, model, apply_completion, dry_run=args.dry_run)

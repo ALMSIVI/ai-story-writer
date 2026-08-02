@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from pytest_mock import MockerFixture
 
 from ai_story_writer.clients import OllamaClient
-from ai_story_writer.types import LlmModel, Message, Role
+from ai_story_writer.types import LlmModel
 
 
 def test_init(mocker: MockerFixture):
@@ -76,18 +76,14 @@ def test_generate(mocker: MockerFixture):
     ]
     mocker.patch('ai_story_writer.clients.ollama.Client', return_value=sdk_client)
     client = OllamaClient(supported_models={'model'})
-    messages = [
-        Message(role=Role.SYSTEM, content='System'),
-        Message(role=Role.USER, content='Outline'),
-    ]
+    prompt = 'Outline'
 
-    chunks = list(client.generate(messages, 'model'))
+    chunks = list(client.generate(prompt, 'model'))
 
     assert chunks == ['First', ' second']
     sdk_client.chat.assert_called_once_with(
         messages=[
-            {'role': Role.SYSTEM, 'content': 'System'},
-            {'role': Role.USER, 'content': 'Outline'},
+            {'role': 'user', 'content': prompt},
         ],
         model='model',
         stream=True,
@@ -98,6 +94,6 @@ def test_count_input_tokens(mocker: MockerFixture):
     mocker.patch('ai_story_writer.clients.ollama.Client')
     client = OllamaClient(supported_models={'model'})
 
-    input_tokens = client.count_input_tokens([Message(role=Role.USER, content='Outline')], 'model')
+    input_tokens = client.count_input_tokens('Outline', 'model')
 
     assert input_tokens is None
