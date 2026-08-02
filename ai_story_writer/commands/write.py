@@ -3,7 +3,7 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
-from ai_story_writer.lib.chapter import find_chapter_index
+from ai_story_writer.lib.story import find_chapter_index
 from ai_story_writer.lib.config import resolve_generation_config, resolve_model, resolve_template
 from ai_story_writer.lib.generation import (
     run_generation,

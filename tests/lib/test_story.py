@@ -1,6 +1,6 @@
 import pytest
 
-from ai_story_writer.lib.chapter import find_chapter_index
+from ai_story_writer.lib.story import find_chapter_index
 from ai_story_writer.types import Chapter, Story
 
 
