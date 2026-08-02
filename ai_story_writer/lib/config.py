@@ -3,6 +3,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from ai_story_writer.types import GenerationConfig
+from ai_story_writer.types.model import LlmModel
 
 
 class GenerationConfigError(ValueError):
@@ -49,3 +50,19 @@ def resolve_generation_config(
     if config.include_full_conversation is None:
         config.include_full_conversation = False
     return config
+
+
+def resolve_model(config: GenerationConfig) -> LlmModel | None:
+    if config.model is None:
+        return None
+    try:
+        return LlmModel.parse(config.model)
+    except ValueError as error:
+        raise GenerationConfigError(str(error)) from error
+
+
+def resolve_template(config: GenerationConfig, operation: str) -> str:
+    template = config.templates.get(operation) if config.templates is not None else None
+    if template is None:
+        raise GenerationConfigError(f'No template configured for {operation}')
+    return template

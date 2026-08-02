@@ -13,7 +13,7 @@ def _configure_prompt(
     monkeypatch: pytest.MonkeyPatch,
     document: object | None,
     templates: dict[str, str],
-) -> None:
+):
     prompts_path = tmp_path / 'prompts'
     prompts_path.mkdir()
     if document is not None:

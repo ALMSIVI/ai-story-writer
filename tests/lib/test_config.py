@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from ai_story_writer.lib.config import GenerationConfigError, resolve_generation_config
-from ai_story_writer.types import GenerationConfig
+from ai_story_writer.lib.config import GenerationConfigError, resolve_generation_config, resolve_model, resolve_template
+from ai_story_writer.types import GenerationConfig, LlmModel
 
 
 def test_resolve_generation_config_merges_each_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -72,3 +72,32 @@ def test_resolve_generation_config_requires_explicit_file(tmp_path: Path, monkey
     monkeypatch.chdir(tmp_path)
     with pytest.raises(GenerationConfigError, match='does not exist'):
         resolve_generation_config(tmp_path / 'story.yaml', config_file='missing.json')
+
+
+def test_resolve_model():
+    assert resolve_model(GenerationConfig(model='Provider.model')) == LlmModel(
+        provider='Provider',
+        name='model',
+    )
+
+
+def test_resolve_model_optional():
+    assert resolve_model(GenerationConfig()) is None
+
+
+def test_resolve_model_reports_invalid_value():
+    with pytest.raises(GenerationConfigError, match='Failed to parse model invalid'):
+        resolve_model(GenerationConfig(model='invalid'))
+
+
+def test_resolve_template():
+    config = GenerationConfig(templates={'write': 'write-prompt', 'rewrite': 'rewrite-prompt'})
+
+    assert resolve_template(config, 'rewrite') == 'rewrite-prompt'
+
+
+def test_resolve_template_requires_operation():
+    config = GenerationConfig(templates={'write': 'write-prompt'})
+
+    with pytest.raises(GenerationConfigError, match='No template configured for rewrite'):
+        resolve_template(config, 'rewrite')

@@ -10,9 +10,10 @@ The application keeps story planning data in a YAML file and generated prose in 
 
 - `ai_story_writer/cli.py`: root parser construction, command registration, dispatch, and user-facing error handling.
 - `ai_story_writer/commands/`: CLI commands; each module owns its arguments and execution workflow.
-  - `ai_story_writer/commands/write.py`: chapter selection, dry-run output, provider lifecycle, streaming, and persistence orchestration for the `write` subcommand.
-- `ai_story_writer/setup.py`: loads model configuration and registers provider clients.
+    - `ai_story_writer/commands/write.py`: chapter completion persistence and orchestration for the `write` subcommand.
+- `ai_story_writer/lib/chapter.py`: resolves chapter positions from optional chapter IDs.
 - `ai_story_writer/lib/config.py`: loads and merges generation options from the supported configuration sources.
+- `ai_story_writer/lib/generation.py`: resolves operation settings and owns shared dry-run, provider lifecycle, and event handling.
 - `ai_story_writer/lib/prompt.py`: loads prompt compositions and renders reusable Jinja sections.
 - `ai_story_writer/lib/messages.py`: builds standard prompts and full-conversation message histories from stories.
 - `ai_story_writer/lib/llm.py`: client registry, token counting, and streaming generation events.
@@ -77,7 +78,7 @@ uv run ruff format --check .
   `uv run pytest tests/commands/test_write.py -v` or
   `uv run pytest tests/commands/test_write.py::test_write_dry_run -v`.
 - Keep tests deterministic and network-free. Use `tmp_path` for story/config files, `mocker.patch` for SDK and lifecycle boundaries, `monkeypatch` for process state such as the working directory, and `capsys` for CLI output.
-- Patch writing dependencies on `ai_story_writer.commands.write` in command tests. Keep `tests/test_cli.py` focused on parser registration, dispatch, compatibility exports, and conversion of known failures to parser errors.
+- Keep `tests/test_cli.py` focused on parser registration, dispatch, compatibility exports, and conversion of known failures to parser errors.
 - The fixture in `tests/conftest.py` clears `ai_story_writer.lib.llm.clients` before and after every test. Register mock clients explicitly when exercising generation.
 - Provider adapter tests live in separate modules under `tests/clients/`. Patch each adapter's SDK constructor to return a mock, then assert translated roles, system-message handling, stream shapes, model filtering, errors, and close behavior without constructing live SDK clients.
 - Prompt tests should use an isolated Jinja environment rather than reading ignored runtime templates. File and CLI tests must not modify repository data or configuration.

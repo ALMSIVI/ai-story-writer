@@ -27,7 +27,7 @@ class MockClient(LlmClient):
             raise self.error
         yield from self.chunks
 
-    def close(self) -> None:
+    def close(self):
         self.closed = True
 
     def count_input_tokens(self, messages: list[Message], model: str) -> int | None:

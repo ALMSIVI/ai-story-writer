@@ -1,24 +1,19 @@
-import sys
 from argparse import ArgumentParser, Namespace
+from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
-from ai_story_writer.commands import CommandError
-from ai_story_writer.lib.config import resolve_generation_config
+from ai_story_writer.lib.chapter import find_chapter_index
+from ai_story_writer.lib.config import resolve_generation_config, resolve_model, resolve_template
+from ai_story_writer.lib.generation import (
+    run_generation,
+)
 from ai_story_writer.lib.id import generate_id
-from ai_story_writer.lib.llm import count_input_tokens, generate
 from ai_story_writer.lib.messages import create_messages
 from ai_story_writer.lib.yaml import YamlStoryDocument
-from ai_story_writer.setup import setup, teardown
 from ai_story_writer.types import (
     Chapter,
     GenerationCompletedEvent,
-    GenerationConfig,
-    GenerationErrorEvent,
-    GenerationInProgressEvent,
-    LlmModel,
-    Message,
-    Story,
 )
 
 
@@ -40,71 +35,6 @@ def register(parser: ArgumentParser):
     parser.set_defaults(func=write)
 
 
-def _resolve_template(config: GenerationConfig) -> str:
-    if config.templates is None or 'write' not in config.templates:
-        raise CommandError('No template configured')
-    return config.templates['write']
-
-
-def _resolve_model(config: GenerationConfig, dry_run: bool) -> LlmModel | None:
-    if config.model is None:
-        if not dry_run:
-            raise CommandError('No model configured')
-        return None
-    try:
-        return LlmModel.parse(config.model)
-    except ValueError as error:
-        raise CommandError(str(error)) from error
-
-
-def _find_chapter_index(story: Story, chapter_id: str | None) -> int:
-    if chapter_id is None:
-        try:
-            return next(index for index, chapter in enumerate(story.chapters) if chapter.id is None)
-        except StopIteration:
-            raise KeyError('Cannot find chapter without id') from None
-
-    try:
-        return next(index for index, chapter in enumerate(story.chapters) if chapter.id == chapter_id)
-    except StopIteration:
-        raise KeyError(f'Cannot find chapter with id {chapter_id}') from None
-
-
-def _print_messages(messages: list[Message]) -> None:
-    if len(messages) == 1:
-        print(messages[0].content)
-    else:
-        print('\n\n'.join(f'[{message.role.value}]\n{message.content}' for message in messages))
-
-
-def _dry_run(
-    story: Story,
-    chapter_index: int,
-    config: GenerationConfig,
-    model: LlmModel | None,
-    template: str,
-):
-    messages = create_messages(
-        story,
-        chapter_index,
-        template,
-        include_full_conversation=config.include_full_conversation,
-        full_chapter_count=config.full_chapter_count,
-    )
-    _print_messages(messages)
-
-    if model is None:
-        return
-
-    try:
-        setup()
-        input_tokens = count_input_tokens(messages, model)
-        if input_tokens is not None:
-            print(f'Input tokens: {input_tokens}')
-    finally:
-        teardown()
-
-
 def _apply_completion(
     story_document: YamlStoryDocument,
     yaml_file: Path,
@@ -124,50 +54,20 @@ def _apply_completion(
     story_document.write_files(yaml_file)
 
 
-def _write(
-    story_document: YamlStoryDocument,
-    yaml_file: Path,
-    chapter_index: int,
-    config: GenerationConfig,
-    model: LlmModel,
-    template: str,
-):
-    messages = create_messages(
-        story_document.story,
-        chapter_index,
-        template,
-        include_full_conversation=config.include_full_conversation,
-        full_chapter_count=config.full_chapter_count,
-    )
-    try:
-        setup()
-        for event in generate(messages, model):
-            if isinstance(event, GenerationInProgressEvent):
-                print(event.chunk, end='', flush=True)
-            elif isinstance(event, GenerationCompletedEvent):
-                _apply_completion(story_document, yaml_file, chapter_index, event)
-            elif isinstance(event, GenerationErrorEvent):
-                print(f'Encountered error {event.message}', file=sys.stderr)
-    finally:
-        teardown()
-
-
 def write(args: Namespace):
     yaml_file = Path(args.file)
     story_document = YamlStoryDocument.load_files(yaml_file)
     config = resolve_generation_config(yaml_file, story_document.generation_config, args.config)
-    template = _resolve_template(config)
-    model = _resolve_model(config, args.dry_run)
+    template = resolve_template(config, 'write')
+    model = resolve_model(config)
 
     if story_document.story.id is None:
         story_document.set_story_id(str(uuid4()))
 
-    chapter_index = _find_chapter_index(story_document.story, args.id)
+    chapter_index = find_chapter_index(story_document.story, args.id)
+    messages = create_messages(
+        story_document.story, chapter_index, template, config.include_full_conversation, config.full_chapter_count
+    )
 
-    if args.dry_run:
-        _dry_run(story_document.story, chapter_index, config, model, template)
-        return
-
-    if model is None:
-        raise CommandError('No model configured')
-    _write(story_document, yaml_file, chapter_index, config, model, template)
+    apply_completion = partial(_apply_completion, story_document, yaml_file, chapter_index)
+    run_generation(messages, model, apply_completion, dry_run=args.dry_run)

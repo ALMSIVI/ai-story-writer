@@ -2,7 +2,7 @@ from ai_story_writer.lib.prompt import render_prompt
 from ai_story_writer.types import Message, Role, Story
 
 
-def _validate_chapter_index(story: Story, chapter_index: int) -> None:
+def _validate_chapter_index(story: Story, chapter_index: int):
     if chapter_index < 0 or chapter_index >= len(story.chapters):
         raise IndexError(f'chapter index {chapter_index} out of range')
 

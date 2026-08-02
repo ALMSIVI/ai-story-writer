@@ -119,14 +119,14 @@ class YamlStoryDocument:
         document['chapters'] = chapters
         return cls(story=story, generation_config=generation_config, document=document)
 
-    def set_story_id(self, story_id: str) -> None:
+    def set_story_id(self, story_id: str):
         self.story.id = story_id
         if 'id' in self.document:
             self.document['id'] = story_id
         else:
             self.document.insert(0, 'id', story_id)
 
-    def set_chapter_id(self, index: int, chapter_id: str) -> None:
+    def set_chapter_id(self, index: int, chapter_id: str):
         self.story.chapters[index].id = chapter_id
         chapter = self._chapter_document(index)
         if 'id' in chapter:
@@ -139,7 +139,7 @@ class YamlStoryDocument:
         _yaml().dump(self.document, stream)
         return stream.getvalue()
 
-    def write_files(self, yaml_path: Path) -> None:
+    def write_files(self, yaml_path: Path):
         yaml_path.write_text(self.dump())
         yaml_path.with_suffix('.md').write_text(dump_markdown(self.story))
 

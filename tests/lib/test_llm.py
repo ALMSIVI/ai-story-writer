@@ -1,4 +1,7 @@
+import json
 import pytest
+from pathlib import Path
+from pytest import MonkeyPatch
 from pytest_mock import MockerFixture
 
 from ai_story_writer.lib import llm
@@ -8,67 +11,41 @@ from ai_story_writer.types import (
     GenerationInProgressEvent,
     LlmModel,
     Message,
-    ModelConfig,
     Role,
 )
 from tests.conftest import MockClient
 
 
-@pytest.mark.parametrize(
-    ('provider', 'base_sdk', 'client_name', 'expected_kwargs'),
-    [
-        ('Anthropic', 'OpenAI', 'AnthropicClient', {'api_key': 'key', 'supported_models': {'model'}}),
-        ('Google', 'OpenAI', 'GoogleClient', {'api_key': 'key', 'supported_models': {'model'}}),
-        (
-            'Ollama',
-            'OpenAI',
-            'OllamaClient',
-            {'api_key': 'key', 'supported_models': {'model'}, 'provider': 'Ollama', 'base_url': 'https://test'},
-        ),
-        (
-            'CustomAnthropic',
-            'Anthropic',
-            'AnthropicClient',
-            {
-                'api_key': 'key',
-                'supported_models': {'model'},
-                'provider': 'CustomAnthropic',
-                'base_url': 'https://test',
-            },
-        ),
-        (
-            'CustomOpenAI',
-            'OpenAI',
-            'OpenAIClient',
-            {
-                'api_key': 'key',
-                'supported_models': {'model'},
-                'provider': 'CustomOpenAI',
-                'base_url': 'https://test',
-            },
-        ),
-    ],
-)
-def test_add_client(
-    provider: str,
-    base_sdk: str,
-    client_name: str,
-    expected_kwargs: dict[str, object],
-    mocker: MockerFixture,
-):
-    client = mocker.Mock()
-    client_class = mocker.patch.object(llm, client_name, return_value=client)
-    config = ModelConfig(
-        apiKey='key',
-        baseSdk=base_sdk,
-        baseUrl='https://test',
-        supportedModels=['model'],
-    )
+def test_initialize_clients(tmp_path: Path, monkeypatch: MonkeyPatch, mocker: MockerFixture):
+    models = {
+        'Anthropic': {'apiKey': 'key', 'supportedModels': ['model']},
+        'Google': {'apiKey': 'key', 'supportedModels': ['model']},
+        'Ollama': {'apiKey': 'key', 'supportedModels': ['model'], 'base_url': 'https://test'},
+        'CustomAnthropic': {
+            'baseSdk': 'Anthropic',
+            'baseUrl': 'https://test',
+            'apiKey': 'key',
+            'supportedModels': ['model'],
+        },
+        'CustomOpenAI': {
+            'baseSdk': 'OpenAI',
+            'baseUrl': 'https://test',
+            'apiKey': 'key',
+            'supportedModels': ['model'],
+        },
+    }
 
-    llm.add_client(provider, config)
+    config_directory = tmp_path / 'config'
+    config_directory.mkdir()
+    (config_directory / 'models.json').write_text(json.dumps(models))
+    monkeypatch.chdir(tmp_path)
 
-    assert llm.clients[provider] is client
-    client_class.assert_called_once_with(**expected_kwargs)
+    llm.initialize_clients()
+
+    assert len(llm.clients) == 5
+    for provider, client in llm.clients.items():
+        assert client.provider == provider
+        assert client.supported_models == set(models[provider]['supportedModels'])
 
 
 def test_cleanup_clients():
