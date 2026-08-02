@@ -1,27 +1,48 @@
-from pathlib import Path
-
+import json
 import pytest
 
+from pathlib import Path
 from ai_story_writer.lib.config import GenerationConfigError, resolve_generation_config, resolve_model, resolve_template
 from ai_story_writer.types import GenerationConfig, LlmModel
 
 
-def test_resolve_generation_config_merges_each_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_resolve_generation_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     project_config = tmp_path / 'config'
     project_config.mkdir()
-    (project_config / 'config.json').write_text(
-        '{"model":"project.model","templates":{"write":"project-write","rewrite":"project-rewrite"},'
-        '"includeFullConversation":false,"fullChapterCount":4}'
-    )
+    with open(project_config / 'config.json', 'wt') as f:
+        json.dump(
+            {
+                'model': 'project.model',
+                'templates': {
+                    'write': 'project-write',
+                    'rewrite': 'project-rewrite',
+                },
+                'includeFullConversation': False,
+                'fullChapterCount': 4,
+            },
+            f,
+        )
+
     story_directory = tmp_path / 'stories'
     story_directory.mkdir()
     story_file = story_directory / 'story.yaml'
-    (story_directory / 'config.json').write_text(
-        '{"templates":{"write":"directory-write"},"includeFullConversation":true,"fullChapterCount":3}'
-    )
+    with open(story_directory / 'config.json', 'wt') as f:
+        json.dump(
+            {
+                'templates': {
+                    'write': 'directory-write',
+                },
+                'includeFullConversation': True,
+                'fullChapterCount': 3,
+            },
+            f,
+        )
+
     explicit_config = tmp_path / 'custom.json'
-    explicit_config.write_text('{"model":"explicit.model"}')
+    with open(explicit_config, 'wt') as f:
+        json.dump({'model': 'explicit.model'}, f)
+
     generation_config = GenerationConfig(
         templates={'rewrite': 'story-rewrite'},
         includeFullConversation=False,
@@ -36,13 +57,22 @@ def test_resolve_generation_config_merges_each_source(tmp_path: Path, monkeypatc
     assert config.full_chapter_count == 2
 
 
-def test_resolve_generation_config_uses_project_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_resolve_generation_config_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(tmp_path)
     project_config = tmp_path / 'config'
     project_config.mkdir()
-    (project_config / 'config.json').write_text(
-        '{"model":"project.model","templates":{"write":"project-write","rewrite":"project-rewrite"}}'
-    )
+    with open(project_config / 'config.json', 'wt') as f:
+        json.dump(
+            {
+                'model': 'project.model',
+                'templates': {
+                    'write': 'project-write',
+                    'rewrite': 'project-rewrite',
+                },
+            },
+            f,
+        )
+
     story_directory = tmp_path / 'stories'
     story_directory.mkdir()
     config = resolve_generation_config(story_directory / 'story.yaml')

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_story_writer.lib.yaml import StoryFileError, YamlStoryDocument
+from ai_story_writer.lib.story_document import StoryFileError, YamlStoryDocument
 from ai_story_writer.types import Chapter, GenerationConfig, Story
 
 

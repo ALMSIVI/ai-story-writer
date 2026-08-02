@@ -11,15 +11,14 @@ The application keeps story planning data in a YAML file and generated prose in 
 - `ai_story_writer/cli.py`: root parser construction, command registration, dispatch, and user-facing error handling.
 - `ai_story_writer/commands/`: CLI commands; each module owns its arguments and execution workflow.
     - `ai_story_writer/commands/write.py`: chapter completion persistence and orchestration for the `write` subcommand.
-- `ai_story_writer/lib/chapter.py`: resolves chapter positions from optional chapter IDs.
+- `ai_story_writer/lib/story.py`: generating IDs and resolving chapter position.
 - `ai_story_writer/lib/config.py`: loads and merges generation options from the supported configuration sources.
 - `ai_story_writer/lib/generation.py`: resolves operation settings and owns shared dry-run, provider lifecycle, and event handling.
 - `ai_story_writer/lib/prompt.py`: loads prompt compositions and renders reusable Jinja sections.
 - `ai_story_writer/lib/messages.py`: builds standard prompts and full-conversation message histories from stories.
 - `ai_story_writer/lib/llm.py`: client registry, token counting, and streaming generation events.
-- `ai_story_writer/lib/yaml.py`: parser/serializer and paired YAML/Markdown file I/O for stories.
+- `ai_story_writer/lib/story_document.py`: parser/serializer and paired YAML/Markdown file I/O for stories.
 - `ai_story_writer/lib/markdown.py`: story Markdown encoding.
-- `ai_story_writer/lib/id.py`: collision-safe ID generation.
 - `ai_story_writer/clients/`: OpenAI, Anthropic, Google, and Ollama adapters implementing `LlmClient`.
 - `ai_story_writer/types/`: Pydantic models for stories, chapters, messages, configuration, models, and generation events.
 - `config/defaults/`: tracked example generation/model configuration and Jinja templates.

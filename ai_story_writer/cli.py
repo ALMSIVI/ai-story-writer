@@ -4,7 +4,7 @@ from ai_story_writer.commands import CommandError
 from ai_story_writer.commands.write import register as register_write
 from ai_story_writer.lib.config import GenerationConfigError
 from ai_story_writer.lib.prompt import PromptTemplateError
-from ai_story_writer.lib.yaml import StoryFileError
+from ai_story_writer.lib.story_document import StoryFileError
 
 
 parser = ArgumentParser()

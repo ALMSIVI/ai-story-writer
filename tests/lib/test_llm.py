@@ -117,23 +117,15 @@ def test_generate_error():
     assert events == [GenerationErrorEvent(message='provider failed')]
 
 
-def test_generate_missing_client():
-    with pytest.raises(ValueError, match='client missing does not exist'):
-        list(
-            llm.generate(
-                [Message(role=Role.USER, content='Prompt')],
-                LlmModel(provider='missing', name='model'),
-            )
-        )
-
-
-def test_generate_unsupported_model():
+@pytest.mark.parametrize(
+    ('model', 'message'),
+    [
+        (LlmModel(provider='missing', name='model'), 'client missing does not exist'),
+        (LlmModel(provider='test', name='unsupported'), 'model unsupported not supported in client test'),
+    ],
+)
+def test_generate_validates_model(model: LlmModel, message: str):
     llm.clients['test'] = MockClient()
 
-    with pytest.raises(ValueError, match='model unsupported not supported in client test'):
-        list(
-            llm.generate(
-                [Message(role=Role.USER, content='Prompt')],
-                LlmModel(provider='test', name='unsupported'),
-            )
-        )
+    with pytest.raises(ValueError, match=message):
+        list(llm.generate([Message(role=Role.USER, content='Prompt')], model))

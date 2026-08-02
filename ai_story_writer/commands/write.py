@@ -3,14 +3,13 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
-from ai_story_writer.lib.story import find_chapter_index
+from ai_story_writer.lib.story import generate_id, find_chapter_index
 from ai_story_writer.lib.config import resolve_generation_config, resolve_model, resolve_template
 from ai_story_writer.lib.generation import (
     run_generation,
 )
-from ai_story_writer.lib.id import generate_id
 from ai_story_writer.lib.messages import create_messages
-from ai_story_writer.lib.yaml import YamlStoryDocument
+from ai_story_writer.lib.story_document import YamlStoryDocument
 from ai_story_writer.types import (
     Chapter,
     GenerationCompletedEvent,

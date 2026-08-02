@@ -1,4 +1,13 @@
-from ai_story_writer.types import Story
+from uuid import uuid4
+
+from ai_story_writer.types import Story, Chapter
+
+def generate_id(items: list[Story] | list[Chapter]) -> str:
+    while True:
+        id = str(uuid4())
+        if all(item.id != id for item in items):
+            break
+    return id
 
 
 def find_chapter_index(story: Story, chapter_id: str | None) -> int:
