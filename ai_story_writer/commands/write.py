@@ -3,16 +3,19 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
-from ai_story_writer.lib.story import generate_id, find_chapter_index
+from ai_story_writer.lib.story import generate_id, find_chapter_index, get_lore, get_previous_context, get_next_outline
 from ai_story_writer.lib.config import resolve_generation_config, resolve_model, resolve_template
 from ai_story_writer.lib.generation import (
     run_generation,
 )
-from ai_story_writer.lib.messages import create_messages
+from ai_story_writer.lib.prompt import render_prompt
 from ai_story_writer.lib.story_document import YamlStoryDocument
 from ai_story_writer.types import (
     Chapter,
     GenerationCompletedEvent,
+    Message,
+    Role,
+    Story,
 )
 
 
@@ -32,6 +35,34 @@ def register(parser: ArgumentParser):
         help='Print the full prompt and, when a model is configured, its input token count',
     )
     parser.set_defaults(func=write)
+
+
+def _create_messages(
+    story: Story,
+    chapter_index: int,
+    template: str,
+    full_chapter_count: int | None,
+):
+    current_chapter = story.chapters[chapter_index]
+    summary, previous_contents = get_previous_context(story, chapter_index, full_chapter_count)
+
+    return [
+        Message(
+            role=Role.USER,
+            content=render_prompt(
+                template,
+                {
+                    'title': story.title,
+                    'style': story.style,
+                    'lore': get_lore(story, chapter_index),
+                    'summary': summary,
+                    'previous': previous_contents,
+                    'current': current_chapter.outline,
+                    'next': get_next_outline(story, chapter_index),
+                },
+            ),
+        )
+    ]
 
 
 def _apply_completion(
@@ -64,9 +95,7 @@ def write(args: Namespace):
         story_document.set_story_id(str(uuid4()))
 
     chapter_index = find_chapter_index(story_document.story, args.id)
-    messages = create_messages(
-        story_document.story, chapter_index, template, config.include_full_conversation, config.full_chapter_count
-    )
+    messages = _create_messages(story_document.story, chapter_index, template, config.full_chapter_count)
 
     apply_completion = partial(_apply_completion, story_document, yaml_file, chapter_index)
     run_generation(messages, model, apply_completion, dry_run=args.dry_run)
