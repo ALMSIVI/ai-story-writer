@@ -1,3 +1,4 @@
+from .background import Background
 from .chapter import Chapter
 from .config import GenerationConfig, ModelConfig
 from .model import LlmModel
@@ -7,6 +8,7 @@ from .story import Story
 
 
 __all__ = [
+    'Background',
     'Chapter',
     'GenerationConfig',
     'ModelConfig',

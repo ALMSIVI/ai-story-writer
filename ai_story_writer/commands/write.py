@@ -3,7 +3,13 @@ from functools import partial
 from pathlib import Path
 from uuid import uuid4
 
-from ai_story_writer.lib.story import generate_id, find_chapter_index, get_lore, get_previous_context, get_next_outline
+from ai_story_writer.lib.story import (
+    generate_id,
+    find_chapter_index,
+    get_background,
+    get_previous_context,
+    get_next_outline,
+)
 from ai_story_writer.lib.config import resolve_generation_config, resolve_model, resolve_template
 from ai_story_writer.lib.generation import (
     run_generation,
@@ -49,7 +55,7 @@ def _create_prompt(
         {
             'title': story.title,
             'style': story.style,
-            'lore': get_lore(story, chapter_index),
+            'background': get_background(story, chapter_index),
             'summary': summary,
             'previous': previous_contents,
             'current': current_chapter.outline,
@@ -69,7 +75,7 @@ def _apply_completion(
     chapter_id = current_chapter.id or generate_id(story.chapters)
     story.chapters[chapter_index] = Chapter(
         id=chapter_id,
-        lore=current_chapter.lore,
+        background=current_chapter.background,
         outline=current_chapter.outline,
         content=event.content,
     )

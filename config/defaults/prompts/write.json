@@ -1,7 +1,7 @@
 {
     "sections": [
         {"name": "next-chapter-role"},
-        {"name": "story-lore"},
+        {"name": "story-background"},
         {"name": "story-summary"},
         {"name": "previous-chapters"},
         {"name": "future-context"},

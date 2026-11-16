@@ -19,9 +19,10 @@ config:
   fullChapterCount: 2
 chapters:
   - id: first
-    lore: |-
-      Shared lore
-      Second line
+    background:
+      - |-
+        Shared background
+        Second line
     outline: |-
       First beat
 
@@ -41,7 +42,7 @@ chapters:
         chapters=[
             Chapter(
                 id='first',
-                lore='Shared lore\nSecond line',
+                background=['Shared background\nSecond line'],
                 outline='First beat\n\nA heading follows:\n# Not a YAML comment',
                 content='# First\n\nBody\n\n## Section\n\nMore',
             ),
@@ -63,8 +64,9 @@ style: |-
   Lyrical
   Restrained
 chapters:
-  - lore: |-
-      Shared lore
+  - background:
+      - |-
+        Shared background
     outline: |-
       First beat
 
@@ -86,8 +88,9 @@ style: |-
   Restrained
 chapters:
   - id: chapter-id
-    lore: |-
-      Shared lore
+    background:
+      - |-
+        Shared background
     outline: |-
       First beat
 
@@ -101,7 +104,7 @@ def test_from_story():
         Story(
             title='Story',
             style='One line',
-            chapters=[Chapter(lore='Lore\nSecond line', outline='Outline\n\nSecond beat')],
+            chapters=[Chapter(background=['Background\nSecond line'], outline='Outline\n\nSecond beat')],
         ),
         GenerationConfig(
             model='OpenAI.gpt-5',
@@ -122,9 +125,10 @@ config:
     write: default
   fullChapterCount: 2
 chapters:
-  - lore: |-
-      Lore
-      Second line
+  - background:
+      - |-
+        Background
+        Second line
     outline: |-
       Outline
 
@@ -139,7 +143,7 @@ chapters:
         ('- title: Story', 'top-level mapping'),
         ('title: Story\nunknown: value\nchapters: []', 'Extra inputs are not permitted'),
         ('title: Story\nchapters:\n  - outline: Outline\n    content: Body', 'Extra inputs are not permitted'),
-        ('title: Story\nchapters:\n  - lore: Lore', 'Field required'),
+        ('title: Story\nchapters:\n  - background: Background', 'Field required'),
     ],
 )
 def test_invalid_yaml_story(yaml_str: str, message: str):

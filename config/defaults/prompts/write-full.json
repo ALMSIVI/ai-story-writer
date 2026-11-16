@@ -1,7 +1,7 @@
 {
     "sections": [
         {"name": "chapter-writer-role"},
-        {"name": "story-lore"},
+        {"name": "story-background"},
         {"name": "full-story-task"},
         {"name": "chapter-guidelines"}
     ]

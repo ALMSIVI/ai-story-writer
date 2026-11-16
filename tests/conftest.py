@@ -51,10 +51,10 @@ def template_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Env
         loader=DictLoader(
             {
                 'prompt.jinja': (
-                    'title={{ title }}|style={{ style }}|lore={{ lore }}|summary={{ summary }}|'
+                    'title={{ title }}|style={{ style }}|background={{ background }}|summary={{ summary }}|'
                     'previous={{ previous }}|current={{ current }}|next={{ next }}'
                 ),
-                'convo.jinja': 'title={{ title }}|style={{ style }}|lore={{ lore }}',
+                'convo.jinja': 'title={{ title }}|style={{ style }}|background={{ background }}',
             }
         )
     )

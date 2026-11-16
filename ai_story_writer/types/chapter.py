@@ -1,3 +1,4 @@
+from .background import Background
 from pydantic import BaseModel, model_validator
 from typing import Any
 
@@ -7,12 +8,12 @@ class Chapter(BaseModel):
     outline: str
     title: str | None = None
     content: str | None = None
-    lore: str | None = None
+    background: list[Background] | None = None
 
     @model_validator(mode='before')
     @classmethod
     def extract_title(cls, data: Any) -> Any:
-        if isinstance(data, dict):  
+        if isinstance(data, dict):
             content = data.get('content')
             if isinstance(content, str):
                 lines = [line for line in content.splitlines()]

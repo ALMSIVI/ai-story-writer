@@ -9,7 +9,7 @@ from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from ai_story_writer.lib.markdown import dump_markdown, parse_markdown
-from ai_story_writer.types import Chapter, GenerationConfig, Story
+from ai_story_writer.types import Background, Chapter, GenerationConfig, Story
 
 
 class StoryFileError(ValueError):
@@ -20,7 +20,7 @@ class ChapterInstructions(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     id: str | None = None
-    lore: str | None = None
+    background: list[Background] | None = None
     outline: str
 
 
@@ -30,6 +30,7 @@ class StoryFileInstructions(BaseModel):
     id: str | None = None
     title: str
     style: str | None = None
+    background: list[Background] | None = None
     config: GenerationConfig | None = None
     chapters: list[ChapterInstructions]
 
@@ -44,6 +45,15 @@ def _yaml() -> YAML:
 
 def _literal(value: str) -> LiteralScalarString:
     return LiteralScalarString(value)
+
+
+def _background_entries(entries: list[Background]) -> CommentedSeq:
+    return CommentedSeq(
+        _literal(entry.content)
+        if entry.keywords is None
+        else CommentedMap(keywords=CommentedSeq(entry.keywords), content=_literal(entry.content))
+        for entry in entries
+    )
 
 
 @dataclass
@@ -71,7 +81,7 @@ class YamlStoryDocument:
         chapters = [
             Chapter(
                 id=chapter.id,
-                lore=chapter.lore,
+                background=chapter.background,
                 outline=chapter.outline,
                 content=contents[index] if index < len(contents) else None,
             )
@@ -81,6 +91,7 @@ class YamlStoryDocument:
             id=instructions.id,
             title=instructions.title,
             style=instructions.style,
+            background=instructions.background,
             chapters=chapters,
         )
         return cls(story=story, generation_config=instructions.config, document=document)
@@ -104,6 +115,8 @@ class YamlStoryDocument:
         document['title'] = story.title
         if story.style is not None:
             document['style'] = _literal(story.style)
+        if story.background is not None:
+            document['background'] = _background_entries(story.background)
         if generation_config is not None:
             document['config'] = CommentedMap(generation_config.model_dump(by_alias=True, exclude_none=True))
 
@@ -112,8 +125,8 @@ class YamlStoryDocument:
             chapter_document = CommentedMap()
             if chapter.id is not None:
                 chapter_document['id'] = chapter.id
-            if chapter.lore is not None:
-                chapter_document['lore'] = _literal(chapter.lore)
+            if chapter.background is not None:
+                chapter_document['background'] = _background_entries(chapter.background)
             chapter_document['outline'] = _literal(chapter.outline)
             chapters.append(chapter_document)
         document['chapters'] = chapters

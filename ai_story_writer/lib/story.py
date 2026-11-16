@@ -24,11 +24,24 @@ def find_chapter_index(story: Story, chapter_id: str | None) -> int:
         raise KeyError(f'Cannot find chapter with id {chapter_id}') from None
 
 
-def get_lore(story: Story, chapter_index: int) -> str | None:
+def get_background(story: Story, chapter_index: int) -> list[str] | None:
+    entries = list(story.background or [])
+    has_background = story.background is not None
     for chapter in reversed(story.chapters[: chapter_index + 1]):
-        if chapter.lore is not None:
-            return chapter.lore
-    return None
+        if chapter.background is not None:
+            entries.extend(chapter.background)
+            has_background = True
+            break
+
+    if not has_background:
+        return None
+
+    outline = story.chapters[chapter_index].outline.casefold()
+    return [
+        entry.content
+        for entry in entries
+        if entry.keywords is None or any(keyword.casefold() in outline for keyword in entry.keywords)
+    ]
 
 
 def get_previous_context(

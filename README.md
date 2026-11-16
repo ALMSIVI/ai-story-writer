@@ -14,14 +14,26 @@ config:
     write: write
   fullChapterCount: 2
 
+background:
+  - |-
+    Rain has not stopped for a decade.
+
 chapters:
-  - lore: |-
-      Rain has not stopped for a decade.
-    outline: |-
+  - outline: |-
       Mara reaches the western gate.
 
   - outline: |-
       The guard recognizes Mara.
+```
+
+Background is an optional list at story or chapter level. Plain string entries are always included. Entries can also be objects with `keywords` (a list of strings) and `content` (a string). Their content is included once only if at least one keyword appears in the current chapter’s outline. Each entry describes settings such as the world, shared knowledge, or basic principles. Story-wide entries are always considered and appear first, followed by chapter-specific entries. A defined chapter background replaces the previous chapter-specific list; an omitted background reuses that list. An empty list clears chapter-specific entries while retaining story-wide entries. Multiline entries can use YAML literal blocks.
+
+```yaml
+background:
+  - The kingdom has no standing army.
+  - keywords: [Mara, western gate]
+    content: |-
+      Mara once commanded the western gate guard.
 ```
 
 Write a chapter:
@@ -84,10 +96,10 @@ The template selected for an operation resolves to a JSON composition in `config
 {
     "sections": [
         {"name": "next-chapter-role"},
-        {"name": "story-lore"},
+        {"name": "story-background"},
         {"name": "future-context", "enabled": false}
     ]
 }
 ```
 
-Each enabled entry loads the matching Jinja section from `config/templates/`, such as `config/templates/story-lore.jinja`. `enabled` is optional and defaults to `true`, so sections can be temporarily disabled without removing them from the composition. Enabled sections are rendered in order with the same story and chapter context. Empty sections are omitted, and the remaining sections are joined with a blank line.
+Each enabled entry loads the matching Jinja section from `config/templates/`, such as `config/templates/story-background.jinja`. `enabled` is optional and defaults to `true`, so sections can be temporarily disabled without removing them from the composition. Enabled sections are rendered in order with the same story and chapter context. Empty sections are omitted, and the remaining sections are joined with a blank line.
