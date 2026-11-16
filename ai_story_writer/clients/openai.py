@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import APIStatusError, OpenAI
 from openai.types.responses import ResponseInputItemParam
 from typing import Iterator
 from .__llm_client__ import LlmClient
@@ -44,12 +44,18 @@ class OpenAIClient(LlmClient):
                 if event.type == 'response.output_text.delta':
                     yield event.delta
 
-    def count_input_tokens(self, prompt: str, model: str) -> int:
+    def count_input_tokens(self, prompt: str, model: str) -> int | None:
         messages = self.__create_input(prompt)
-        response = self.__client.responses.input_tokens.count(
-            input=messages,
-            model=model,
-        )
+        try:
+            response = self.__client.responses.input_tokens.count(
+                input=messages,
+                model=model,
+            )
+        except APIStatusError as error:
+            # Compatible providers may support generation without the token-count endpoint.
+            if error.status_code in {404, 405, 501}:
+                return None
+            raise
         return response.input_tokens
 
     @staticmethod

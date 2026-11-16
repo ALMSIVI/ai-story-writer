@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+from openai import APIStatusError
 from pytest_mock import MockerFixture
 
 from ai_story_writer.clients import OpenAIClient
@@ -103,6 +105,32 @@ def test_count_input_tokens(mocker: MockerFixture):
         input=[{'role': 'user', 'content': prompt}],
         model='model',
     )
+
+
+@pytest.mark.parametrize('status_code', [404, 405, 501])
+def test_count_input_tokens_unsupported_endpoint(mocker: MockerFixture, status_code: int):
+    sdk_client = mocker.Mock()
+    sdk_client.responses.input_tokens.count.side_effect = APIStatusError(
+        'Unsupported endpoint', response=mocker.Mock(status_code=status_code), body=None
+    )
+    mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
+    client = OpenAIClient(api_key='secret', supported_models={'model'})
+
+    assert client.count_input_tokens('Outline', 'model') is None
+
+
+@pytest.mark.parametrize('status_code', [400, 401, 403, 429, 500, 503])
+def test_count_input_tokens_preserves_other_errors(mocker: MockerFixture, status_code: int):
+    sdk_client = mocker.Mock()
+    error = APIStatusError('Provider error', response=mocker.Mock(status_code=status_code), body=None)
+    sdk_client.responses.input_tokens.count.side_effect = error
+    mocker.patch('ai_story_writer.clients.openai.OpenAI', return_value=sdk_client)
+    client = OpenAIClient(api_key='secret', supported_models={'model'})
+
+    with pytest.raises(APIStatusError) as exc_info:
+        client.count_input_tokens('Outline', 'model')
+
+    assert exc_info.value is error
 
 
 def test_close(mocker: MockerFixture):
