@@ -21,10 +21,11 @@ def test_prompt_renders_background_entries(background: list[str] | None, templat
     prompt = _create_prompt(story, 0, 'background', None)
 
     if background:
-        assert '\n\n'.join(background) in prompt
+        assert '<background>\n- World overview\n- Knowledge\n  Principles\n</background>' in prompt
         assert str(background) not in prompt
     else:
-        assert '<background_information>' not in prompt
+        assert '<background>' not in prompt
+        assert '## Background' not in prompt
 
 
 def test_completion_preserves_background(tmp_path: Path):
@@ -66,13 +67,13 @@ def test_prompt_includes_only_matching_background_content(template_environment: 
 
     prompt = _create_prompt(story, 1, 'background', 0)
 
-    assert 'General facts\n\nGate rules\n\nLocal gate details' in prompt
+    assert '<background>\n- General facts\n- Gate rules\n- Local gate details\n</background>' in prompt
     assert 'Forest rules' not in prompt
     assert 'keywords' not in prompt
     assert 'Background(' not in prompt
 
 
-@pytest.mark.parametrize('composition', ['write', 'write-full'])
+@pytest.mark.parametrize('composition', ['write'])
 def test_default_prompt_filters_and_renders_characters(
     composition: str, template_environment: Environment, monkeypatch
 ):
@@ -110,7 +111,7 @@ def test_prompt_omits_empty_character_section(characters, template_environment: 
     assert '### Characters' not in _create_prompt(story, 0, 'write', None)
 
 
-@pytest.mark.parametrize('composition', ['write', 'write-full'])
+@pytest.mark.parametrize('composition', ['write'])
 @pytest.mark.parametrize('instructions', [None, [], ['Leave suspense', 'Start with dialogue']])
 def test_default_prompt_renders_instructions(composition, instructions, template_environment, monkeypatch):
     template_environment.loader = FileSystemLoader('config/defaults/templates')

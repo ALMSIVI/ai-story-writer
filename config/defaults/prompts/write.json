@@ -7,8 +7,9 @@
         {"name": "previous-chapters"},
         {"name": "future-context"},
         {"name": "current-chapter-task"},
-        {"name": "story-instructions"},
-        {"name": "chapter-guidelines"},
+        {"name": "chapter-instructions"},
+        {"name": "story-style"},
+        {"name": "writing-guidelines"},
         {"name": "write-chapter"}
     ]
 }

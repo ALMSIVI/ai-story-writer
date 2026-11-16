@@ -1,9 +1,11 @@
-{% if characters %}
-### Characters
-{% for character in characters %}
+{% if characters -%}
+## Character Cards
 
-#### {{ character.name }}
+<characters>
+{%- for character in characters %}
+#### {{character.name}}
 
-{{ character.content }}
-{% endfor %}
+{{character.content}}
+{% endfor -%}
+</characters>
 {% endif %}

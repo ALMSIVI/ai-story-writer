@@ -1,7 +1,9 @@
-{% if background %}
-### Story Background
+{% if background -%}
+## Background
 
-<background_information>
-{{ background | join('\n\n') }}
-</background_information>
+<background>
+{%- for item in background %}
+- {{item | indent(2)}}
+{%- endfor %}
+</background>
 {% endif %}

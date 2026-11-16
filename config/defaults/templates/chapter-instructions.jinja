@@ -1,0 +1,9 @@
+{% if instructions -%}
+### Chapter Instructions
+
+<instructions>
+{%- for instruction in instructions %}
+- {{instruction | indent(2)}}
+{%- endfor %}
+</instructions>
+{% endif %}
