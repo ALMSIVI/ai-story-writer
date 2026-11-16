@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from ai_story_writer.types import Story, Chapter
+from ai_story_writer.types import Story, Chapter, Character
 
 
 def generate_id(items: list[Story] | list[Chapter]) -> str:
@@ -41,6 +41,15 @@ def get_background(story: Story, chapter_index: int) -> list[str] | None:
         entry.content
         for entry in entries
         if entry.keywords is None or any(keyword.casefold() in outline for keyword in entry.keywords)
+    ]
+
+
+def get_characters(story: Story, chapter_index: int) -> list[Character]:
+    outline = story.chapters[chapter_index].outline.casefold()
+    return [
+        character
+        for character in story.characters or []
+        if character.keywords is None or any(keyword.casefold() in outline for keyword in character.keywords)
     ]
 
 

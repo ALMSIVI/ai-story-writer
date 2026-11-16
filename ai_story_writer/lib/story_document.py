@@ -9,7 +9,7 @@ from ruamel.yaml.error import YAMLError
 from ruamel.yaml.scalarstring import LiteralScalarString
 
 from ai_story_writer.lib.markdown import dump_markdown, parse_markdown
-from ai_story_writer.types import Background, Chapter, GenerationConfig, Story
+from ai_story_writer.types import Background, Chapter, Character, GenerationConfig, Story
 
 
 class StoryFileError(ValueError):
@@ -31,6 +31,7 @@ class StoryFileInstructions(BaseModel):
     title: str
     style: str | None = None
     background: list[Background] | None = None
+    characters: list[Character] | None = None
     config: GenerationConfig | None = None
     chapters: list[ChapterInstructions]
 
@@ -92,6 +93,7 @@ class YamlStoryDocument:
             title=instructions.title,
             style=instructions.style,
             background=instructions.background,
+            characters=instructions.characters,
             chapters=chapters,
         )
         return cls(story=story, generation_config=instructions.config, document=document)
@@ -117,6 +119,15 @@ class YamlStoryDocument:
             document['style'] = _literal(story.style)
         if story.background is not None:
             document['background'] = _background_entries(story.background)
+        if story.characters is not None:
+            characters = CommentedSeq()
+            for character in story.characters:
+                entry = CommentedMap(name=character.name)
+                if character.keywords is not None:
+                    entry['keywords'] = CommentedSeq(character.keywords)
+                entry['content'] = _literal(character.content)
+                characters.append(entry)
+            document['characters'] = characters
         if generation_config is not None:
             document['config'] = CommentedMap(generation_config.model_dump(by_alias=True, exclude_none=True))
 

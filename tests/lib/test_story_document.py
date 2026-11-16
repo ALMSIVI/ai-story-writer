@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pytest
 
+from ai_story_writer.commands.write import _apply_completion
+from ai_story_writer.lib.markdown import dump_markdown
 from ai_story_writer.lib.story_document import StoryFileError, YamlStoryDocument
-from ai_story_writer.types import Chapter, GenerationConfig, Story
+from ai_story_writer.types import Character, Chapter, GenerationCompletedEvent, GenerationConfig, Story
 
 
 def test_yaml_story_round_trip():
@@ -178,3 +180,30 @@ def test_write_files_preserves_yaml_and_writes_markdown(tmp_path: Path):
     assert yaml_file.read_text().startswith('# User comment\ntitle: Story\n')
     assert 'outline: |-\n      First beat\n' in yaml_file.read_text()
     assert yaml_file.with_suffix('.md').read_text() == '# Chapter\n\nBody'
+
+
+@pytest.mark.parametrize('keywords', [None, [], ['captain', 'alias']])
+def test_from_story_characters_round_trip(keywords):
+    story = Story(
+        title='Story',
+        characters=[Character(name='Mara', keywords=keywords, content='First line\nSecond line')],
+        chapters=[
+            Chapter(outline='First', content='Untitled prose'),
+            Chapter(outline='Second', content='# Two\n\nBody'),
+        ],
+    )
+    document = YamlStoryDocument.from_story(story)
+    restored = YamlStoryDocument.load(document.dump(), dump_markdown(story))
+
+    assert restored.story == story
+    assert 'content: |-\n      First line\n      Second line' in document.dump()
+    assert ('keywords:' in document.dump()) == (keywords is not None)
+
+
+@pytest.mark.parametrize(
+    'entry',
+    ['{content: Missing name}', '{name: Missing content}', '{name: Mara, content: Facts, keywords: captain}'],
+)
+def test_invalid_characters(entry: str):
+    with pytest.raises(StoryFileError, match='Invalid story instructions'):
+        YamlStoryDocument.load(f'title: Story\ncharacters:\n  - {entry}\nchapters: []\n')

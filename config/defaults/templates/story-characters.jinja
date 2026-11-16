@@ -1,0 +1,9 @@
+{% if characters %}
+### Characters
+{% for character in characters %}
+
+#### {{ character.name }}
+
+{{ character.content }}
+{% endfor %}
+{% endif %}

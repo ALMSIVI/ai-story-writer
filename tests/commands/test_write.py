@@ -70,3 +70,41 @@ def test_prompt_includes_only_matching_background_content(template_environment: 
     assert 'Forest rules' not in prompt
     assert 'keywords' not in prompt
     assert 'Background(' not in prompt
+
+
+@pytest.mark.parametrize('composition', ['write', 'write-full'])
+def test_default_prompt_filters_and_renders_characters(
+    composition: str, template_environment: Environment, monkeypatch
+):
+    template_environment.loader = FileSystemLoader('config/defaults/templates')
+    monkeypatch.setattr(prompt_module, 'prompts_path', Path('config/defaults/prompts'))
+    story = Story.model_validate(
+        {
+            'title': 'Story',
+            'characters': [
+                {'name': 'Narrator', 'content': 'Always present'},
+                {'name': 'Mara', 'keywords': ['Red Fox', 'captain'], 'content': 'A resourceful sailor'},
+                {'name': 'Guard', 'keywords': ['guard'], 'content': 'Only in another chapter'},
+                {'name': 'Hidden', 'keywords': [], 'content': 'Never included'},
+            ],
+            'chapters': [{'outline': 'The guard waits'}, {'outline': 'The CAPTAIN arrives'}],
+        }
+    )
+
+    rendered = _create_prompt(story, 1, composition, 0)
+
+    assert '#### Narrator\n\nAlways present' in rendered
+    assert '#### Mara\n\nA resourceful sailor' in rendered
+    assert rendered.count('A resourceful sailor') == 1
+    assert 'Only in another chapter' not in rendered
+    assert 'Never included' not in rendered
+    assert 'keywords' not in rendered
+
+
+@pytest.mark.parametrize('characters', [None, []])
+def test_prompt_omits_empty_character_section(characters, template_environment: Environment, monkeypatch):
+    template_environment.loader = FileSystemLoader('config/defaults/templates')
+    monkeypatch.setattr(prompt_module, 'prompts_path', Path('config/defaults/prompts'))
+    story = Story(title='Story', characters=characters, chapters=[Chapter(outline='First')])
+
+    assert '### Characters' not in _create_prompt(story, 0, 'write', None)
