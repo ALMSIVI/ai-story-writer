@@ -215,3 +215,43 @@ def test_empty_chapter_background_keeps_matching_story_items():
     )
 
     assert get_background(story, 2) == ['Gate rules']
+
+
+@pytest.mark.parametrize(
+    ('index', 'expected'),
+    [
+        (0, ['Always']),
+        (1, ['Always', 'Old']),
+        (2, ['Always', 'Old']),
+        (3, ['Always', 'New']),
+        (4, ['Always']),
+        (5, ['Always']),
+    ],
+)
+def test_instructions_inherit_replace_and_clear(index, expected):
+    from ai_story_writer.lib.story import get_instructions
+
+    story = Story(
+        title='Story',
+        instructions=['Always'],
+        chapters=[
+            Chapter(outline='First'),
+            Chapter(outline='Second', instructions=['Old']),
+            Chapter(outline='Third'),
+            Chapter(outline='Fourth', instructions=['New']),
+            Chapter(outline='Fifth', instructions=[]),
+            Chapter(outline='Sixth'),
+        ],
+    )
+    assert get_instructions(story, index) == expected
+    assert get_instructions(story, index) == expected
+    assert story.instructions == ['Always']
+    assert story.chapters[1].instructions == ['Old']
+
+
+@pytest.mark.parametrize('instructions', [None, [], ['Directive']])
+def test_instructions_without_story_directives(instructions):
+    from ai_story_writer.lib.story import get_instructions
+
+    story = Story(title='Story', chapters=[Chapter(outline='First', instructions=instructions)])
+    assert get_instructions(story, 0) == instructions

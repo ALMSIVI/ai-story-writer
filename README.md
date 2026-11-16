@@ -31,11 +31,15 @@ chapters:
   - outline: |-
       Mara reaches the western gate.
 
-  - outline: |-
+  - instructions: 
+      - "Leave the ending in suspense"
+    outline: |-
       The guard recognizes Mara.
 ```
 
 Background is an optional list at story or chapter level. Plain string entries are always included. Entries can also be objects with `keywords` (a list of strings) and `content` (a string). Their content is included once only if at least one keyword appears in the current chapter’s outline. Each entry describes settings such as the world, shared knowledge, or basic principles. Story-wide entries are always considered and appear first, followed by chapter-specific entries. A defined chapter background replaces the previous chapter-specific list; an omitted background reuses that list. An empty list clears chapter-specific entries while retaining story-wide entries. Multiline entries can use YAML literal blocks.
+
+Instructions are an optional list of strings at story or chapter level. Story instructions always apply and appear first. The most recent chapter instructions replace earlier chapter instructions; omitted instructions inherit the previous list, and an empty list clears chapter instructions while keeping story instructions.
 
 Characters are an optional top-level list. Each character has a `name` and `content`, with optional `keywords`. Characters without keywords always appear in the prompt. Otherwise, at least one keyword must occur in the current chapter's outline (case-insensitive substring matching). An empty keyword list never matches. The `story-characters` prompt section renders each selected character's name as a heading followed by their content.
 

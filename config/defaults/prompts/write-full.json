@@ -4,6 +4,7 @@
         {"name": "story-background"},
         {"name": "story-characters"},
         {"name": "full-story-task"},
+        {"name": "story-instructions"},
         {"name": "chapter-guidelines"}
     ]
 }

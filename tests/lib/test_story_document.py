@@ -2,10 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from ai_story_writer.commands.write import _apply_completion
 from ai_story_writer.lib.markdown import dump_markdown
 from ai_story_writer.lib.story_document import StoryFileError, YamlStoryDocument
-from ai_story_writer.types import Character, Chapter, GenerationCompletedEvent, GenerationConfig, Story
+from ai_story_writer.types import Character, Chapter, GenerationConfig, Story
 
 
 def test_yaml_story_round_trip():
@@ -207,3 +206,37 @@ def test_from_story_characters_round_trip(keywords):
 def test_invalid_characters(entry: str):
     with pytest.raises(StoryFileError, match='Invalid story instructions'):
         YamlStoryDocument.load(f'title: Story\ncharacters:\n  - {entry}\nchapters: []\n')
+
+
+def test_instructions_round_trip():
+    source = """title: Story
+instructions: # Global directives
+  - |-
+    Keep suspense
+    Avoid exposition
+chapters:
+  - instructions: [] # Clear local directives
+    outline: First
+  - instructions:
+      - "Start with dialogue" # Opening
+    outline: Second
+  - outline: Third
+"""
+    document = YamlStoryDocument.load(source, '# Title\n\nBody')
+    assert document.story.instructions == ['Keep suspense\nAvoid exposition']
+    assert document.story.chapters[0].instructions == []
+    assert document.story.chapters[1].instructions == ['Start with dialogue']
+    assert document.story.chapters[2].instructions is None
+    assert document.dump() == source
+    restored = YamlStoryDocument.load(document.dump(), dump_markdown(document.story))
+    assert restored.story == document.story
+
+
+@pytest.mark.parametrize('value', ['a directive', '[42]', '[{content: directive}]'])
+def test_instructions_require_a_list_of_strings(value):
+    for source in [
+        f'title: Story\ninstructions: {value}\nchapters: []',
+        f'title: Story\nchapters:\n  - outline: First\n    instructions: {value}',
+    ]:
+        with pytest.raises(StoryFileError):
+            YamlStoryDocument.load(source)

@@ -44,6 +44,17 @@ def get_background(story: Story, chapter_index: int) -> list[str] | None:
     ]
 
 
+def get_instructions(story: Story, chapter_index: int) -> list[str] | None:
+    entries = list(story.instructions or [])
+    has_instructions = story.instructions is not None
+    for chapter in reversed(story.chapters[: chapter_index + 1]):
+        if chapter.instructions is not None:
+            entries.extend(chapter.instructions)
+            has_instructions = True
+            break
+    return entries if has_instructions else None
+
+
 def get_characters(story: Story, chapter_index: int) -> list[Character]:
     outline = story.chapters[chapter_index].outline.casefold()
     return [

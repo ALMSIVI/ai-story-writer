@@ -10,5 +10,6 @@ class Story(BaseModel):
     title: str
     style: str | None = None
     background: list[Background] | None = None
+    instructions: list[str] | None = None
     characters: list[Character] | None = None
     chapters: list[Chapter]

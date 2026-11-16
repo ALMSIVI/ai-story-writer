@@ -108,3 +108,39 @@ def test_prompt_omits_empty_character_section(characters, template_environment: 
     story = Story(title='Story', characters=characters, chapters=[Chapter(outline='First')])
 
     assert '### Characters' not in _create_prompt(story, 0, 'write', None)
+
+
+@pytest.mark.parametrize('composition', ['write', 'write-full'])
+@pytest.mark.parametrize('instructions', [None, [], ['Leave suspense', 'Start with dialogue']])
+def test_default_prompt_renders_instructions(composition, instructions, template_environment, monkeypatch):
+    template_environment.loader = FileSystemLoader('config/defaults/templates')
+    monkeypatch.setattr(prompt_module, 'prompts_path', Path('config/defaults/prompts'))
+    story = Story(title='Story', instructions=instructions, chapters=[Chapter(outline='First')])
+
+    prompt = _create_prompt(story, 0, composition, None)
+
+    if instructions:
+        assert '<instructions>' in prompt
+        for instruction in instructions:
+            assert f'- {instruction}' in prompt
+    else:
+        assert '<instructions>' not in prompt
+
+
+@pytest.mark.parametrize('instructions', [None, [], ['Leave suspense\nDo not reveal the secret']])
+def test_completion_preserves_instructions(tmp_path, instructions):
+    story = Story(
+        title='Story',
+        instructions=['Always'],
+        chapters=[
+            Chapter(outline='First', instructions=instructions),
+            Chapter(outline='Second'),
+        ],
+    )
+    document = YamlStoryDocument.from_story(story)
+    yaml_file = tmp_path / 'story.yaml'
+    _apply_completion(document, yaml_file, 0, GenerationCompletedEvent(content='# Title\n\nBody'))
+
+    assert document.story.chapters[0].instructions == instructions
+    restored = YamlStoryDocument.load_files(yaml_file)
+    assert restored.story == document.story

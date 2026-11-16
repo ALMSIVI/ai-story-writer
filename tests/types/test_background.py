@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ai_story_writer.types import Background, Chapter, Story
+from ai_story_writer.types import Background
 
 
 @pytest.mark.parametrize('value', ['General facts', {'content': 'General facts', 'keywords': None}])

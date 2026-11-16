@@ -7,6 +7,7 @@ from ai_story_writer.lib.story import (
     generate_id,
     find_chapter_index,
     get_background,
+    get_instructions,
     get_characters,
     get_previous_context,
     get_next_outline,
@@ -57,6 +58,7 @@ def _create_prompt(
             'title': story.title,
             'style': story.style,
             'background': get_background(story, chapter_index),
+            'instructions': get_instructions(story, chapter_index),
             'characters': get_characters(story, chapter_index),
             'summary': summary,
             'previous': previous_contents,
@@ -78,6 +80,7 @@ def _apply_completion(
     story.chapters[chapter_index] = Chapter(
         id=chapter_id,
         background=current_chapter.background,
+        instructions=current_chapter.instructions,
         outline=current_chapter.outline,
         content=event.content,
     )

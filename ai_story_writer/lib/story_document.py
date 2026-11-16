@@ -21,6 +21,7 @@ class ChapterInstructions(BaseModel):
 
     id: str | None = None
     background: list[Background] | None = None
+    instructions: list[str] | None = None
     outline: str
 
 
@@ -31,6 +32,7 @@ class StoryFileInstructions(BaseModel):
     title: str
     style: str | None = None
     background: list[Background] | None = None
+    instructions: list[str] | None = None
     characters: list[Character] | None = None
     config: GenerationConfig | None = None
     chapters: list[ChapterInstructions]
@@ -83,6 +85,7 @@ class YamlStoryDocument:
             Chapter(
                 id=chapter.id,
                 background=chapter.background,
+                instructions=chapter.instructions,
                 outline=chapter.outline,
                 content=contents[index] if index < len(contents) else None,
             )
@@ -93,6 +96,7 @@ class YamlStoryDocument:
             title=instructions.title,
             style=instructions.style,
             background=instructions.background,
+            instructions=instructions.instructions,
             characters=instructions.characters,
             chapters=chapters,
         )
@@ -119,6 +123,8 @@ class YamlStoryDocument:
             document['style'] = _literal(story.style)
         if story.background is not None:
             document['background'] = _background_entries(story.background)
+        if story.instructions is not None:
+            document['instructions'] = CommentedSeq(_literal(entry) for entry in story.instructions)
         if story.characters is not None:
             characters = CommentedSeq()
             for character in story.characters:
@@ -138,6 +144,8 @@ class YamlStoryDocument:
                 chapter_document['id'] = chapter.id
             if chapter.background is not None:
                 chapter_document['background'] = _background_entries(chapter.background)
+            if chapter.instructions is not None:
+                chapter_document['instructions'] = CommentedSeq(_literal(entry) for entry in chapter.instructions)
             chapter_document['outline'] = _literal(chapter.outline)
             chapters.append(chapter_document)
         document['chapters'] = chapters

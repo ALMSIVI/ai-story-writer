@@ -9,6 +9,7 @@ class Chapter(BaseModel):
     title: str | None = None
     content: str | None = None
     background: list[Background] | None = None
+    instructions: list[str] | None = None
 
     @model_validator(mode='before')
     @classmethod
